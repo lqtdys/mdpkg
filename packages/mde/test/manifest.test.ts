@@ -114,6 +114,25 @@ test('版本协商: 主版本不符报 E701，必需扩展不支持报 E702（�
   assert.throws(() => render(pkgFiles, {}), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E702');
 });
 
+test('引用收集基于 AST：代码块内的示例不算引用，到本地 md 的链接不强制打包', () => {
+  // dogfood 发现：打包项目自己的 README 时，快速开始代码块里的 ![图](assets/a.png)
+  // 被当成真实引用导致 E401；且 README 对 spec/mde-format-spec.md 的链接会要求连带整个仓库
+  const md = [
+    '真实图片：![a](assets/a.png)',
+    '',
+    '```',
+    '![示例](assets/only-in-example.png)',
+    '```',
+    '',
+    '文档链接：[规范](spec/x.md)',
+    '',
+    '附件：[pdf](files/a.pdf)',
+  ].join('\n');
+  const { local, docLinks } = collectReferences(md);
+  assert.deepEqual(local, ['assets/a.png', 'files/a.pdf'], '代码块内的示例不得算作引用');
+  assert.equal(docLinks, 1, '到本地 md 的链接应计为文档导航而非附件');
+});
+
 test('validate: 缺少 manifest.json 报 E102；非法 JSON 报 E302', () => {
   const r = validatePackage(new Map([['document.md', enc('# x')]]));
   assert.ok(r.errors.some((e) => e.includes('MDE-E102')));

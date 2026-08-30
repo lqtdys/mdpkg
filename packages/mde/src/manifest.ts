@@ -7,6 +7,9 @@ import Ajv2020 from 'ajv/dist/2020.js'; // ajv 8 默认只含 draft-07/2019-09�
 import { MdeError, E } from './errors.ts';
 import { normalizePath } from './container.ts';
 import { expand } from './include.ts';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import { visit } from 'unist-util-visit';
 
 export const SPEC_VERSION = '1.0';
 export const DEFAULT_ENTRYPOINT = 'document.md';
@@ -79,19 +82,31 @@ function getValidator() {
   return validator;
 }
 
-/** 扫描 Markdown 中的本地引用（M2 版：仅正则扫单文档；M4 起换 include 传递闭包） */
-export function collectReferences(md: string, baseDir = ''): { local: string[]; external: number } {
+/**
+ * 收集文档内的资源引用。
+ * 必须走 AST 而非正则：文档里常出现「示例代码块」内含 Markdown 语法示例
+ * （如 README 的 ![图](assets/a.png)），正则会把示例当真实引用，导致 pack 误报 E401。
+ * 用 remark 解析后，只有 image / link 节点的 url 才算引用，代码块与行内代码天然被排除——
+ * 与符号扩展共用同一套「排除区」判断。
+ */
+export function collectReferences(md: string, baseDir = ''): { local: string[]; external: number; docLinks: number } {
   const local: string[] = [];
   let external = 0;
-  const re = /!?\[[^\]]*\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g;
-  for (let m = re.exec(md); m; m = re.exec(md)) {
-    const raw = m[1];
-    if (/^(https?:)?\/\//i.test(raw) || /^(mailto|data|tel):/i.test(raw) || raw.startsWith('#') || raw.startsWith('<')) { external++; continue; }
+  let docLinks = 0;
+  const tree = unified().use(remarkParse).parse(md);
+  visit(tree as never, (node: { type: string; url?: string }) => {
+    if (node.type !== 'image' && node.type !== 'link') return;
+    const raw = node.url;
+    if (typeof raw !== 'string' || !raw) return;
+    if (/^(https?:)?\/\//i.test(raw) || /^(mailto|data|tel):/i.test(raw) || raw.startsWith('#') || raw.startsWith('<')) { external++; return; }
     const p = decodeURIComponent(raw.split('#')[0].split('?')[0]);
-    if (!p) continue;
+    if (!p) return;
+    // 到本地 Markdown 的链接是「文档间导航」而非附件，不强制打包——
+    // 否则打包一篇 README 会连带要求整个仓库。图片与 pdf/zip 等嵌入附件才必须随包。
+    if (node.type === 'link' && /\.md$/i.test(p)) { docLinks++; return; }
     local.push(normalizePath(baseDir ? `${baseDir}/${p}` : p));
-  }
-  return { local, external };
+  });
+  return { local, external, docLinks };
 }
 
 /** 引用闭包校验：先展开 include 再收集引用，否则会漏掉被包含文档里的图片（规范 §6.2 第 4 条） */
