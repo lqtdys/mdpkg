@@ -1,0 +1,11 @@
+{
+  "id": "pack-unicode-path",
+  "title": "中文与 Unicode 路径原样入包",
+  "kind": "pack",
+  "expect": {
+    "tree": [
+      "assets/产品截图 2024.png 608",
+      "document.md 37"
+    ]
+  }
+}

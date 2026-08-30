@@ -1,0 +1,10 @@
+{
+  "id": "symbols-profile-off",
+  "title": "extensions.symbols=off 时完全不转换（manifest 作者意图被继承）",
+  "kind": "render",
+  "expect": {
+    "htmlNotContains": [
+      "™"
+    ]
+  }
+}

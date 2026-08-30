@@ -1,0 +1,12 @@
+{
+  "id": "path-normalize",
+  "title": "规范化：去掉 ./ 与重复分隔符",
+  "kind": "path",
+  "expect": {
+    "errorCode": null,
+    "pathInput": "a//b/./c.md",
+    "textContains": [
+      "a/b/c.md"
+    ]
+  }
+}

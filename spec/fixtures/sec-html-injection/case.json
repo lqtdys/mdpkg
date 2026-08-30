@@ -1,0 +1,12 @@
+{
+  "id": "sec-html-injection",
+  "title": "内联 HTML 中的 script 与 on* 被消毒",
+  "kind": "render",
+  "expect": {
+    "htmlNotContains": [
+      "<script",
+      "onerror",
+      "javascript:"
+    ]
+  }
+}

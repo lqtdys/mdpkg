@@ -1,0 +1,25 @@
+{
+  "name": "mde",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MDE v1 — Markdown Enhanced package (ZIP + manifest) reference implementation",
+  "bin": {
+    "mde": "./src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "fflate": "^0.8.3",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
+  }
+}

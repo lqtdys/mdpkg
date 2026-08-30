@@ -1,0 +1,14 @@
+{
+  "id": "sec-external-url",
+  "title": "外链图片保留 URL 并补 referrerpolicy",
+  "kind": "render",
+  "expect": {
+    "htmlContains": [
+      "referrerpolicy=\"no-referrer\"",
+      "src=\"https://example.com/x.png\""
+    ],
+    "htmlNotContains": [
+      "data:image/png;base64,iVB"
+    ]
+  }
+}

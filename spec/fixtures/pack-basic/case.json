@@ -1,0 +1,12 @@
+{
+  "id": "pack-basic",
+  "title": "最小包：1 图片 + 1 级 include + core 符号",
+  "kind": "pack",
+  "expect": {
+    "tree": [
+      "assets/images/a.png 608",
+      "document.md 43",
+      "includes/ch1.md 14"
+    ]
+  }
+}

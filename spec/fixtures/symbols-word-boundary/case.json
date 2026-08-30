@@ -1,0 +1,12 @@
+{
+  "id": "symbols-word-boundary",
+  "title": "词边界：路径/版本号/命令中的符号不误伤",
+  "kind": "render",
+  "expect": {
+    "htmlNotContains": [
+      "a≤b",
+      "v1.2→v2",
+      "路径→a"
+    ]
+  }
+}

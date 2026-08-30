@@ -1,0 +1,19 @@
+{
+  "id": "render-symbols",
+  "title": "core 符号在普通文本中转换",
+  "kind": "render",
+  "expect": {
+    "htmlContains": [
+      "™",
+      "©",
+      "®",
+      "→",
+      "←",
+      "↔",
+      "±",
+      "≠",
+      "≤",
+      "≥"
+    ]
+  }
+}

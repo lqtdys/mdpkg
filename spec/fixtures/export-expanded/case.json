@@ -1,0 +1,11 @@
+{
+  "id": "export-expanded",
+  "title": "export --expanded：include 已内联、相对路径已按包根重写",
+  "kind": "export",
+  "expect": {
+    "textContains": [
+      "第一章内容",
+      "](includes/img/fig.png)"
+    ]
+  }
+}

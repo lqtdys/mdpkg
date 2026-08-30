@@ -1,0 +1,10 @@
+{
+  "id": "include-visible-degraded",
+  "title": "未展开的指令降级为可见文本（不被当作 HTML 清除）",
+  "kind": "render",
+  "expect": {
+    "htmlContains": [
+      "&#x3C;&#x3C;&#x3C;"
+    ]
+  }
+}

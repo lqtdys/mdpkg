@@ -1,0 +1,15 @@
+{
+  "id": "render-include-nested",
+  "title": "渲染时 include 内容与其符号、图片一并处理",
+  "kind": "render",
+  "args": {
+    "inline": true
+  },
+  "expect": {
+    "htmlContains": [
+      "<h2>第一章",
+      "©",
+      "src=\"data:image/png;base64,"
+    ]
+  }
+}

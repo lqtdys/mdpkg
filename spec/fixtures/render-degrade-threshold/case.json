@@ -1,0 +1,16 @@
+{
+  "id": "render-degrade-threshold",
+  "title": "超过 maxInlineBytes 自动降级，不再内联",
+  "kind": "render",
+  "args": {
+    "maxInlineBytes": 10
+  },
+  "expect": {
+    "htmlContains": [
+      "src=\"assets/a.png\""
+    ],
+    "htmlNotContains": [
+      "base64"
+    ]
+  }
+}

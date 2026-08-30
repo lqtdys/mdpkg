@@ -1,0 +1,12 @@
+{
+  "id": "include-multi-level",
+  "title": "多层嵌套展开",
+  "kind": "expand",
+  "expect": {
+    "textContains": [
+      "L1",
+      "L2",
+      "L3"
+    ]
+  }
+}

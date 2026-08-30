@@ -1,0 +1,8 @@
+{
+  "id": "include-outside-root",
+  "title": "目标在包外报 E501",
+  "kind": "expand",
+  "expect": {
+    "errorCode": "MDE-E501"
+  }
+}

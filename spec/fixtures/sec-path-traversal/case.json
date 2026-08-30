@@ -1,0 +1,9 @@
+{
+  "id": "sec-path-traversal",
+  "title": "拒绝 ../ 路径",
+  "kind": "path",
+  "expect": {
+    "errorCode": "MDE-E202",
+    "pathInput": "../etc/passwd"
+  }
+}

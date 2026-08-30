@@ -1,0 +1,10 @@
+{
+  "id": "include-indented-not-triggered",
+  "title": "缩进 1 空格不触发（列 0 才触发）",
+  "kind": "expand",
+  "expect": {
+    "textContains": [
+      "<<< includes/ch1.md"
+    ]
+  }
+}

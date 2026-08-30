@@ -1,0 +1,12 @@
+{
+  "id": "validate-size-mismatch",
+  "title": "size 不符报 E402",
+  "kind": "validate",
+  "tamper": {
+    "resource": 0,
+    "size": 999999
+  },
+  "expect": {
+    "errorCode": "MDE-E402"
+  }
+}

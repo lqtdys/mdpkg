@@ -1,0 +1,13 @@
+{
+  "id": "symbols-exclusion-zone",
+  "title": "排除区：行内代码 / 代码块 / HTML 属性 不转换",
+  "kind": "render",
+  "expect": {
+    "htmlContains": [
+      "<code>(tm)</code>"
+    ],
+    "htmlNotContains": [
+      "<code>™</code>"
+    ]
+  }
+}

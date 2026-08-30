@@ -1,0 +1,13 @@
+{
+  "id": "render-inline-data-uri",
+  "title": "inline 模式：包内图片内联为 data URI",
+  "kind": "render",
+  "args": {
+    "inline": true
+  },
+  "expect": {
+    "htmlContains": [
+      "src=\"data:image/png;base64,"
+    ]
+  }
+}

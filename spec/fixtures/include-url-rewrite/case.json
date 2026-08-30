@@ -1,0 +1,11 @@
+{
+  "id": "include-url-rewrite",
+  "title": "被包含文件内的相对图片路径按该文件目录重写",
+  "kind": "expand",
+  "expect": {
+    "textContains": [
+      "](includes/img/fig.png)",
+      "](https://x.com/a.png)"
+    ]
+  }
+}

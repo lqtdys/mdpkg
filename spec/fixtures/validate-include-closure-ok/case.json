@@ -1,0 +1,6 @@
+{
+  "id": "validate-include-closure-ok",
+  "title": "被包含文档图片按重写后路径存在时通过，且被包含文件不算孤儿",
+  "kind": "validate",
+  "expect": {}
+}

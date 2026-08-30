@@ -1,0 +1,11 @@
+{
+  "id": "pack-nfd-normalized",
+  "title": "NFD 文件名归一为 NFC",
+  "kind": "pack",
+  "expect": {
+    "tree": [
+      "café.md 5",
+      "document.md 4"
+    ]
+  }
+}

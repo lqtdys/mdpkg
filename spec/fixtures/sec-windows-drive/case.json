@@ -1,0 +1,9 @@
+{
+  "id": "sec-windows-drive",
+  "title": "拒绝 Windows 盘符",
+  "kind": "path",
+  "expect": {
+    "errorCode": "MDE-E202",
+    "pathInput": "C:\\Windows\\x"
+  }
+}

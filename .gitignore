@@ -2,3 +2,5 @@
 .codegraph
 memoryos_data/
 .DS_Store
+node_modules/
+.omo/

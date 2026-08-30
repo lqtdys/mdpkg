@@ -1,0 +1,16 @@
+{
+  "id": "sec-malicious-svg",
+  "title": "SVG 以 img 引用渲染，不插入 DOM",
+  "kind": "render",
+  "args": {
+    "inline": true
+  },
+  "expect": {
+    "htmlContains": [
+      "src=\"data:image/svg+xml;base64,"
+    ],
+    "htmlNotContains": [
+      "<svg"
+    ]
+  }
+}

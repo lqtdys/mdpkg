@@ -1,0 +1,1 @@
+/Users/mason/mde/spec/fixtures/sec-symlink/input/document.md

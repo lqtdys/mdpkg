@@ -1,0 +1,10 @@
+{
+  "id": "include-single",
+  "title": "单层展开",
+  "kind": "expand",
+  "expect": {
+    "textContains": [
+      "第一章内容"
+    ]
+  }
+}

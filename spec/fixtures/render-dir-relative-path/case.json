@@ -1,0 +1,16 @@
+{
+  "id": "render-dir-relative-path",
+  "title": "dir 模式：图片保留相对路径",
+  "kind": "render",
+  "args": {
+    "dir": true
+  },
+  "expect": {
+    "htmlContains": [
+      "src=\"assets/a.png\""
+    ],
+    "htmlNotContains": [
+      "base64"
+    ]
+  }
+}

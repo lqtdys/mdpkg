@@ -1,0 +1,12 @@
+{
+  "id": "validate-sha-mismatch",
+  "title": "sha256 不符报 E403（完整性问题，非篡改证据）",
+  "kind": "validate",
+  "tamper": {
+    "resource": 0,
+    "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "expect": {
+    "errorCode": "MDE-E403"
+  }
+}

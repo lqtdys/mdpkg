@@ -1,0 +1,11 @@
+{
+  "id": "symbols-escape",
+  "title": "哨兵法转义：反斜杠前缀保留字面",
+  "kind": "render",
+  "expect": {
+    "htmlContains": [
+      "(tm)",
+      "™"
+    ]
+  }
+}

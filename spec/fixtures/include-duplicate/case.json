@@ -1,0 +1,10 @@
+{
+  "id": "include-duplicate",
+  "title": "同一文件被包含两次（非循环）正常展开",
+  "kind": "expand",
+  "expect": {
+    "textContains": [
+      "X"
+    ]
+  }
+}

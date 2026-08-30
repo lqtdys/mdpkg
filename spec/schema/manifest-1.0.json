@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mde.spec/schema/manifest-1.0.json",
+  "title": "MDE manifest v1.0",
+  "type": "object",
+  "required": ["mde", "spec_version", "resources"],
+  "additionalProperties": false,
+  "properties": {
+    "mde": { "const": "mde" },
+    "spec_version": { "type": "string", "pattern": "^1\\.\\d+$" },
+    "entrypoint": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "encoding": { "const": "utf-8" },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "symbols": { "enum": ["off", "core", "extended"] },
+        "include": { "type": "boolean" }
+      }
+    },
+    "extensions_required": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "media_type", "size", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "media_type": { "type": "string", "minLength": 1 },
+          "size": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "source_url": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
