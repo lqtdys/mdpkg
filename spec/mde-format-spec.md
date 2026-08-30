@@ -461,14 +461,14 @@ spec/fixtures/<case-id>/
 
 ### B.3 用例清单（Phase 0B 目标 ≥ 30）
 
-> **落地状态（2026-08-30）：已实现 40 个用例**，位于 `spec/fixtures/<id>/`，由 `packages/mde/test/fixtures.test.ts` 驱动，全部通过（全量 75/75，含 35 个实现单测）。
+> **落地状态（2026-08-30）：已实现 43 个用例**（下方目标清单已全覆盖），位于 `spec/fixtures/<id>/`，由 `packages/mde/test/fixtures.test.ts` 驱动，全部通过（**全量 79/79**，含 36 个实现单测）。
 >
 > 实际 `case.json` 字段（与 B.2 的差异：断言内联，只有大产物才放 `expected/` 目录）：
 > `id` / `title` / `kind`（`pack`\|`validate`\|`render`\|`expand`\|`path`）/ `input`（默认 `input/`）/ `entry` / `args`（传给 `render`）/ `tamper`（篡改 manifest 以测完整性：`{ resource, sha256, size }`）/ `expect`（`errorCode`\|`tree`\|`manifest`\|`htmlContains`\|`htmlNotContains`\|`textContains`\|`pathInput`）。
 >
 > 与下方目标清单的差异及原因：
 > - **不进 fixture 的用例**（受执行环境限制，改由实现单测覆盖）：① 大小写冲突、NFC/NFD 同名冲突——macOS APFS 对大小写与 Unicode 规范化均不敏感，这类输入在文件系统上会互相覆盖，根本建不出来，已由 `container.test.ts` 用内存 Map 覆盖；② ZIP 炸弹——需在用例内嵌入 12 MB 文件且需 unpack 通道，已由 `container.test.ts` 覆盖。
-> - **尚未实现的用例**：`export-raw` / `export-expanded`（`export` 命令未实现）、`unpack-roundtrip`（fixture 驱动暂无 unpack 通道，已由 `container.test.ts` 的 diff 往返覆盖）。
+> - 驱动共六条通道：`pack` / `validate` / `render` / `expand` / `export` / `unpack`（外加不依赖文件树的 `path`）。`unpack-roundtrip` 断言 pack→unpack 后除 `manifest.json`（工具生成）外每个文件逐字节相同。
 > - **可重复性不单独立用例**：驱动对所有 `pack` 类用例自动附加「两次打包字节相同」断言。
 
 **正向（8）**

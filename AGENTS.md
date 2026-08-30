@@ -88,6 +88,6 @@ git status                 # 工作区状态（注意 PLAN_MERGED.md / spec/ / p
 - 已完成：M0 可行性探针（4/4 PASS）、M1 容器骨架（9/9 + `unzip -l` 互操作 + diff 往返）、M2 manifest + `validate`（16/16 + E401 负向）、M3 `render` + core 符号（25/25 + 自包含 HTML）、M4 `include`（35/35 + 多级 include 端到端）。**v1 三项能力（资源随包 / 符号扩展 / 文件包含）至此全部实现。**
 - 已完成 M5：conformance fixtures **40 个用例**（`spec/fixtures/<id>/{case.json,input/}`，驱动 `packages/mde/test/fixtures.test.ts`）。**全量测试 75/75**（35 单测 + 40 fixture）。
 - 已完成 M6：规范与实现逐条对齐，补齐 5 处「规范承诺但实现缺失」（E701/E702 版本协商、`--referenced-only`、`export --raw/--expanded`、`mde diff`），`--fetch` 显式标注为 v1 不提供。
-- **M0–M6 全部完成**（M7 为延后项）。测试入口：`cd packages/mde && node --test test/*.test.ts`，**78/78**（36 单测 + 42 conformance fixture）。
-- 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；`unpack-roundtrip` fixture 未落盘（已由单测 diff 往返覆盖）；M7（VS Code 插件）在采用可行性验证前不启动。
+- **M0–M6 全部完成**（M7 为延后项）。测试入口：`cd packages/mde && node --test test/*.test.ts`，**79/79**（36 单测 + 43 conformance fixture）。
+- 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；M7（VS Code 插件）在采用可行性验证前不启动。（`unpack-roundtrip` fixture 已于收尾补齐，规范清单 43 个用例全覆盖）
 - 定位：先自用后标准化，3 个月止损判据；VS Code 插件（M7）在采用可行性验证前不启动。

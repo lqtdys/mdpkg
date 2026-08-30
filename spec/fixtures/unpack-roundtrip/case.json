@@ -1,0 +1,6 @@
+{
+  "id": "unpack-roundtrip",
+  "title": "pack → unpack 逐字节相同（含中文路径与二进制资源）",
+  "kind": "unpack",
+  "expect": {}
+}

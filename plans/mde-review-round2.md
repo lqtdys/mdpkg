@@ -278,7 +278,7 @@ render:   <h1>主文档 ™ / <h2>第一章 © / <h3>第二章 → 结尾
 
 ### 2.4.6 M5 结果（已完成，2026-08-30）
 
-产物：`spec/fixtures/`（**42 个**用例目录）、`packages/mde/test/fixtures.test.ts`（驱动，约 170 行）。**全量 78/78 通过**（36 个实现单测 + 42 个 fixture）。M6 补上 `export-raw` / `export-expanded` 后由 40 增至 42。
+产物：`spec/fixtures/`（**43 个**用例目录）、`packages/mde/test/fixtures.test.ts`（驱动，约 190 行）。**全量 79/79 通过**（36 个实现单测 + 43 个 fixture）。M6 补上 `export-raw` / `export-expanded`（40→42），收尾再补 `unpack-roundtrip`（→43），规范清单自此全覆盖。
 
 驱动设计：用例数据与实现无关地放在 `case.json`，`kind` 分派到 `pack` / `validate` / `render` / `expand` / `path` 五条通道；`pack` 类自动附加「两次打包字节相同」断言；支持 `tamper` 篡改 manifest 以覆盖完整性校验（E402/E403）。
 
@@ -288,7 +288,7 @@ render:   <h1>主文档 ™ / <h2>第一章 © / <h3>第二章 → 结尾
 1. **macOS APFS 对大小写与 Unicode 规范化均不敏感**——`A.md`+`a.md`、NFC+NFD 同名文件在文件系统上会互相覆盖，这类输入**根本建不出来**，故大小写冲突与 NFD 同名冲突不进 fixture，改由 `container.test.ts` 用内存 Map 覆盖。
 2. ZIP 炸弹需在用例内嵌入 12 MB 文件且驱动需 unpack 通道，同样留给单测。
 
-**未覆盖**：仅 `unpack-roundtrip`（驱动暂无 unpack 通道，已由 `container.test.ts` 的 diff 往返覆盖）。`export-raw` / `export-expanded` 已在 M6 随 `export` 命令一并补齐。
+**规范清单已全覆盖**（43 个）。`unpack-roundtrip` 在收尾阶段补齐：驱动新增 `unpack` 通道，断言 pack→unpack 后除 `manifest.json` 外每个文件逐字节相同（含中文路径与二进制资源）。
 
 **踩坑**：TypeScript 类型剥离对括号嵌套零容忍——`new Map([...files, ['k', encode(json(build(...)))]]);` 这类一行嵌套连续写错三次（先多 `)` 后少 `]`），报 `ERR_INVALID_TYPESCRIPT_SYNTAX`。改为两步写法（先算 `manifestJson()` 再构造 Map）即解决：**深度嵌套的括号不要在 .ts 里一行写完**。
 

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { collectFiles, pack, normalizePath } from '../src/container.ts';
+import { collectFiles, pack, unpack, normalizePath } from '../src/container.ts';
 import { buildManifest, validatePackage, checkClosure, DEFAULT_ENTRYPOINT } from '../src/manifest.ts';
 import { render } from '../src/render.ts';
 import { expand } from '../src/include.ts';
@@ -18,7 +18,7 @@ const FIXTURES = join(ROOT, 'spec/fixtures');
 interface Case {
   id: string;
   title: string;
-  kind: 'pack' | 'validate' | 'render' | 'expand' | 'export' | 'path';
+  kind: 'pack' | 'validate' | 'render' | 'expand' | 'export' | 'unpack' | 'path';
   input?: string; // 输入目录，默认 input/
   entry?: string;
   args?: Record<string, unknown>;
@@ -120,6 +120,18 @@ async function runCase(c: Case, base: string): Promise<void> {
     const html = render(withManifest(), c.args ?? {}).html;
     for (const s of c.expect.htmlContains ?? []) assert.ok(html.includes(s), `${c.id}: HTML 应包含 ${JSON.stringify(s)}`);
     for (const s of c.expect.htmlNotContains ?? []) assert.ok(!html.includes(s), `${c.id}: HTML 不应包含 ${JSON.stringify(s)}`);
+    return;
+  }
+
+  if (c.kind === 'unpack') {
+    // pack → unpack 往返：除 manifest.json（由工具生成）外，每个文件必须逐字节相同
+    const bytes = pack(files, manifest);
+    const restored = await unpack(bytes);
+    for (const [p, data] of files) {
+      const got = restored.get(normalizePath(p));
+      assert.ok(got, `${c.id}: 解包后缺少 ${p}`);
+      assert.deepEqual(new Uint8Array(got!), new Uint8Array(data), `${c.id}: ${p} 往返后内容不一致`);
+    }
     return;
   }
 
