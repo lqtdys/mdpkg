@@ -45,7 +45,12 @@ function expandFile(files: Map<string, Uint8Array>, path: string, depth: number,
 
   const base = dirname(path);
   const lines = new TextDecoder().decode(data).split('\n');
+  // 围栏状态只用于「不改写代码块内的示例路径」——代码块里常出现 Markdown 用法示例，
+  // 重写它会篡改用户可见内容。这与 include 指令的列 0 触发规则无关（后者按 §7.2 不感知代码块）。
+  let inFence = false;
   lines.forEach((raw, idx) => {
+    const isFence = /^\s*(?:```|~~~)/.test(raw);
+    if (isFence) { st.out.push(raw); st.sources.push({ file: path, line: idx + 1 }); inFence = !inFence; return; }
     const m = INCLUDE_RE.exec(raw);
     if (m) {
       let target = m[1].trim();
@@ -59,7 +64,7 @@ function expandFile(files: Map<string, Uint8Array>, path: string, depth: number,
       expandFile(files, norm, depth + 1, stack, st);
       return;
     }
-    st.out.push(rewriteLine(raw, base));
+    st.out.push(inFence ? raw : rewriteLine(raw, base));
     st.sources.push({ file: path, line: idx + 1 });
     st.bytes += raw.length + 1;
     if (st.bytes > INCLUDE_LIMITS.maxBytes) throw new MdeError(E.E505, `展开后超过 ${INCLUDE_LIMITS.maxBytes / 1048576}MB`);

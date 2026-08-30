@@ -40,6 +40,17 @@ test('URL 重写: 被包含文件内的相对图片路径按该文件目录解�
   assert.ok(r.text.includes('](https://x.com/a.png)'), '外链不应被重写');
 });
 
+test('URL 重写不得改写代码块内的示例路径（与引用收集共用同一排除区原则）', () => {
+  const NL = String.fromCharCode(10);
+  const { files } = build({
+    'document.md': '<<< includes/api.md' + NL,
+    'includes/api.md': ['用法示例：', '', '```markdown', '![示例](img/demo.png)', '```', '', '真实引用：', '', '![真图](img/real.png)', ''].join(NL),
+  });
+  const r = expand(files, 'document.md');
+  assert.ok(r.text.includes('![示例](img/demo.png)'), `代码块内示例不得被重写，实际: ${r.text}`);
+  assert.ok(r.text.includes('![真图](includes/img/real.png)'), '代码块外的真实引用仍须重写');
+});
+
 test('嵌套与深度: 多层展开正常，超限报 E504', () => {
   const chain: Record<string, string> = { 'document.md': '<<< a1.md\n' };
   for (let i = 1; i < INCLUDE_LIMITS.depth + 3; i++) chain[`a${i}.md`] = `L${i}\n<<< a${i + 1}.md\n`;
