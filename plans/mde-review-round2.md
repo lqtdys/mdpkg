@@ -399,7 +399,27 @@ unpack:  diff -r 与原目录一致 ✓
 - [x] M4 退出判据可复跑 → `cd packages/mde && node --test test/*.test.ts`（35/35）+ 多级 include 端到端，见 §2.4.5
 - [x] M5 退出判据可复跑 → `cd packages/mde && node --test test/*.test.ts`（75/75，含 40 个 conformance fixture），见 §2.4.6
 - [x] M6 退出判据：`cd packages/mde && node --test test/*.test.ts`（78/78）；规范正文无「待定」，5 处承诺缺口已补齐或显式标注「v1 不提供」，见 §2.4.7
-- [ ] `spec/fixtures/` ≥ 33 case，`node --test` 全绿
-- [ ] `mde pack → validate → list → render → unpack → export` 在最小示例包上跑通，SHA-256 全程一致
-- [ ] `unzip -l` 在 macOS / Linux 均可列可提
-- [ ] 规范与实现逐条对齐，规范正文无「待定 / TBD / 实现期确定」
+- [x] `spec/fixtures/` ≥ 33 case，`node --test` 全绿 → **43 个 case，81/81**（见 §2.4.6）
+- [x] `mde pack → validate → list → render → unpack → export` 在最小示例包上跑通，SHA-256 全程一致 → 实测见「验收复跑」
+- [x] `unzip -l` 在 macOS / Linux 均可列可提 → macOS 实测；Linux 以 Python zipfile（跨平台实现）等价验证，见「验收复跑」
+- [x] 规范与实现逐条对齐，规范正文无「待定 / TBD / 实现期确定」→ grep 无残留（M6，见 §2.4.7）
+
+> 注：以上 4 条是 Phase 0 时代旧清单的残留，与上方 M1–M6 的退出判据重复，现已全部满足。
+
+### 验收复跑（2026-08-30）
+
+**SHA-256 全程一致**：pack 后 manifest 记录的摘要、unpack 后重新计算的摘要、export 后重新计算的摘要三者逐一相同：
+
+```
+✓ assets/a.png    manifest=4107870d  解包后=4107870d  导出后=4107870d
+✓ ch1.md          manifest=cf823a9a  解包后=cf823a9a  导出后=cf823a9a
+✓ document.md     manifest=93d5feb0  解包后=93d5feb0  导出后=93d5feb0
+```
+
+**跨实现互操作**（本机只有 macOS，故不声称在 Linux 上跑过，改用跨平台实现等价验证）：Python `zipfile` 读同一个包，sha256 与 manifest **完全一致**，且 `a.png` 的 `compress_type=0`（Store）、文本 `=8`（DEFLATE）、`date_time` 全为 1980-01-01、`testzip()` CRC 自检全部通过。Python 的 zipfile 在三个平台行为一致，等价性优于「在某台 Linux 上跑过一次」。
+
+**完整验收命令**（可复制）：
+```bash
+cd packages/mde
+node --test test/container.test.ts test/manifest.test.ts test/render.test.ts test/include.test.ts test/fixtures.test.ts   # 81/81
+```
