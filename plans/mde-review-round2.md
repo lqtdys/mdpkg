@@ -342,9 +342,45 @@ unpack:  diff -r 与原目录一致 ✓
 
 ## 2.5 测试策略
 
-`spec/fixtures/<case-id>/{case.json, input/, expected/}`，`node:test` 驱动（规范附录 B 已定义格式与 33 个用例清单）。
+`spec/fixtures/<case-id>/{case.json, input/, expected/}`，`node:test` 驱动（规范附录 B 已定义格式与用例清单）。
 
 用例优先级：**先写 3 个（`pack-basic` / `sec-path-traversal` / `symbols-word-boundary`）**，用它们逼出规范剩余含糊处，再补齐全文。fixture 会主动暴露歧义，比空想写规范快得多。
+
+## 2.6 Dogfood 结果（2026-08-30，M7 之前的真实使用验证）
+
+按 §1.4 的定位，在投入 M7 之前先真实用两次。**结果：两套用例（80/80）挡不住一次真实使用。**
+
+### 场景 1：打包项目自身的 README.md
+
+```
+第 1 次 → [MDE-E401] 引用的本地资源缺失: assets/a.png
+         （那行是「快速开始」代码块里的示例代码，不是真实引用）
+第 2 次 → [MDE-E401] 引用的本地资源缺失: spec/mde-format-spec.md
+         （真实引用，但指向仓库内另一篇文档）
+第 3 次 → ✅ pack 2 条目 → validate OK → render 单文件
+```
+
+两个根因（提交 `a80baaf`，测试 80/80）：
+1. **引用收集用正则扫全文，没有排除区**。文档里含 Markdown 语法的示例代码块极常见（教程、README 都有），正则无法区分示例与真实引用。符号扩展有排除区、引用收集却没有——**内部不一致**。改为复用 remark AST：只有 `image` / `link` 节点的 URL 算引用，代码块与行内代码天然排除。
+2. **到本地 `.md` 的链接被当成必须随包的附件**，打包一篇 README 会连带要求整个仓库。按 P0 原义重新切分：**图片与 pdf/zip 等嵌入附件必须随包**（这才是「附件不丢失」），**`.md` 链接属文档间导航，不强制打包**（单独计入 `docLinks`）。
+
+这是设计判断而非纯 bug 修复，已写进规范 §6.2（「什么算引用」+「必须用 AST」），并加 1 条测试锁死。
+
+**教训：我的测试输入都是「干净的」，真实文档不是。** 79 个用例全绿却挡不住打包一篇真实 README 失败，因为真实文档有示例代码块、有指向其他文档的链接。
+
+### 场景 2：编辑-重打包周期（规范 §12.1 / H4 的主链路）
+
+此前**从未端到端验证过**的核心场景。流程：pack → unpack → 加一张新图并引用 → 重打包。
+
+```
+结果：✅ 通过
+- 作者意图完整保留：extensions.symbols=core、include=true、extensions_required=["include"]
+- 机器事实全部重算：新图 assets/new.png 进包（size 4000 + 正确 sha256）、
+  document.md 哈希随之更新、无过期哈希残留
+- validate OK（0 告警）
+```
+
+注：该场景的关键逻辑（字段归属表）已由 `manifest.test.ts` 的 `buildManifest(files, prev)` 覆盖，且 driver 的 pack 通道支持 `input/manifest.json` 作为 prev（`symbols-profile-off`、`include-visible-degraded` 两例即依赖此行为），故未新增端到端测试。
 
 ---
 
