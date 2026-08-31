@@ -94,6 +94,7 @@ export function wrapDocument(title: string, bodyHtml: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
+<link rel="icon" href="data:,">
 <style>
 :root{color-scheme:light}
 body{max-width:980px;margin:2rem auto;padding:0 1.25rem;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#1f2328}
