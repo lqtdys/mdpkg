@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="mdpkg — 自包含 Markdown 打包格式规范 v1.0。把一篇带图、分章节的 Markdown 文档打包成一个可校验、可离线打开、可重复构建的 .mdpkg 文件。">
+<title>mdpkg — Markdown Package 格式规范</title>
+<style>
+  :root {
+    --bg: #0b0c10;
+    --card: #101118;
+    --code-bg: #0d0e14;
+    --border: #22242b;
+    --primary: #165DFF;
+    --primary-soft: rgba(22, 93, 255, 0.12);
+    --text: #e8e9ed;
+    --text-dim: #9a9daa;
+    --text-faint: #6b6e7a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---------- 顶部品牌条 ---------- */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .brand-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+  }
+  .brand {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .brand::after {
+    content: ".";
+    color: var(--primary);
+  }
+  .brand-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- 徽章行 ---------- */
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px 0 0;
+  }
+  .badges img { height: 20px; border-radius: 3px; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 72px 0 56px; }
+  .hero h1 {
+    font-size: clamp(26px, 4.5vw, 40px);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    max-width: 22em;
+  }
+  .hero h1 .hl { color: var(--primary); }
+  .hero p.lede {
+    margin-top: 20px;
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 46em;
+  }
+  .hero code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    color: var(--text);
+    background: var(--primary-soft);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  /* ---------- 通用 section ---------- */
+  section { padding: 40px 0; }
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--primary);
+    margin-bottom: 24px;
+  }
+
+  /* ---------- 能力卡片 ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (min-width: 720px) {
+    .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.2s ease;
+  }
+  .card:hover { border-color: var(--primary); }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card h3 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--primary);
+    margin-right: 8px;
+  }
+  .card p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+  .card code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- 快速开始 ---------- */
+  .quickstart {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .quickstart-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    font-family: var(--mono);
+    color: var(--text-faint);
+  }
+  .quickstart-bar .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .quickstart-bar .dot:first-child { background: var(--primary); }
+  pre {
+    background: var(--code-bg);
+    padding: 24px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 2;
+  }
+  pre .cmd { color: var(--text); }
+  pre .flag { color: var(--primary); }
+  pre .comment { color: var(--text-faint); }
+
+  /* ---------- 格式要点 ---------- */
+  .points {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+  }
+  .points li {
+    position: relative;
+    padding: 14px 18px 14px 40px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+  .points li strong { color: var(--text); font-weight: 600; }
+  .points li::before {
+    content: "▸";
+    position: absolute;
+    left: 18px;
+    top: 14px;
+    color: var(--primary);
+  }
+  .points code {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- 导航 ---------- */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (min-width: 720px) {
+    .nav-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .nav-card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .nav-card:hover {
+    border-color: var(--primary);
+    background: #12131c;
+  }
+  .nav-card .nav-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .nav-card .nav-title::after {
+    content: " →";
+    color: var(--primary);
+  }
+  .nav-card .nav-desc {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ---------- 页脚 ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+    padding: 32px 0 48px;
+  }
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    font-size: 13.5px;
+    color: var(--text-faint);
+  }
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--primary); }
+
+  ::selection { background: var(--primary); color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand-row">
+      <div class="brand">mdpkg</div>
+      <div class="brand-sub">Markdown Package · 自包含 Markdown 打包格式规范 v1.0</div>
+    </div>
+    <div class="badges">
+      <img src="https://img.shields.io/badge/format-v1.0-blue" alt="格式版本 v1.0">
+      <img src="https://img.shields.io/badge/tests-81%2F81-green" alt="测试 81/81 通过">
+      <img src="https://img.shields.io/badge/code-MIT-blue" alt="代码许可 MIT">
+      <img src="https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey" alt="规范许可 CC BY 4.0">
+      <img src="https://img.shields.io/github/stars/jianxi-dev/mdpkg" alt="GitHub Stars">
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>把一篇带图、分章节的 Markdown 文档，打包成<span class="hl">一个可校验、可离线打开、可重复构建</span>的 <code>.mdpkg</code> 文件。</h1>
+    <p class="lede">普通 Markdown 的图片是引用，传一个文件就会丢附件。mdpkg 用标准 ZIP 容器加 <code>manifest.json</code> 清单，让文档、资源与引用关系成为一个整体——传输即归档，打开即完整。</p>
+  </section>
+
+  <section>
+    <h2>核心能力</h2>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="tag">01</span>资源随包</h3>
+        <p>用原生相对路径写 <code>![图](assets/a.png)</code>，打包时资源一起进包；引用缺失直接报错，不会静默丢图。</p>
+      </div>
+      <div class="card">
+        <h3><span class="tag">02</span>符号扩展</h3>
+        <p><code>(tm)</code> → ™、<code>--&gt;</code> → →。只在普通文本中、渲染期生效，不改动原文，解包即原始 Markdown。</p>
+      </div>
+      <div class="card">
+        <h3><span class="tag">03</span>文件包含</h3>
+        <p><code>&lt;&lt;&lt; includes/ch1.md</code> 在解析前展开，支持嵌套与循环检测——长文档可分章节维护，打包后是一个文件。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>快速开始</h2>
+    <div class="quickstart">
+      <div class="quickstart-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:8px">bash</span></div>
+<pre><span class="comment"># 打包：目录 → .mdpkg（图片等资源随包）</span>
+<span class="cmd">mdpkg pack</span>   ./my-doc  <span class="flag">-o</span> doc.mdpkg
+
+<span class="comment"># 校验：结构 + SHA-256 哈希 + 引用闭包</span>
+<span class="cmd">mdpkg validate</span> doc.mdpkg
+
+<span class="comment"># 渲染：单文件自包含 HTML，图片已内联，离线可开</span>
+<span class="cmd">mdpkg render</span> doc.mdpkg   <span class="flag">-o</span> doc.html</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>格式要点</h2>
+    <ul class="points">
+      <li><strong>标准 ZIP + manifest.json</strong> —— 容器无任何私有格式：任何 unzip 工具都能打开，根目录清单声明版本、入口与资源索引。</li>
+      <li><strong>可重复构建</strong> —— mtime 固定、条目按路径升序，同输入必产同字节，对 Git 与缓存友好。</li>
+      <li><strong>三层兼容</strong> —— 容器层（ZIP 通用）、文档层（解包即标准 Markdown）、导出层（render 出纯 HTML），任何一层退化都不丢内容。</li>
+      <li><strong>SHA-256 完整性校验</strong> —— 用于检测损坏、误传与跨平台字节漂移；<strong>不防篡改</strong>（manifest 与资源同在包内，防篡改需签名，边界见规范）。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>延伸阅读</h2>
+    <div class="nav-grid">
+      <a class="nav-card" href="spec.html">
+        <span class="nav-title">规范全文</span>
+        <span class="nav-desc">mdpkg Format Specification v1.0 —— 容器布局、manifest schema、一致性规则</span>
+      </a>
+      <a class="nav-card" href="https://github.com/jianxi-dev/mdpkg">
+        <span class="nav-title">GitHub 仓库</span>
+        <span class="nav-desc">jianxi-dev/mdpkg —— 参考实现、conformance 测试向量、issue 跟踪</span>
+      </a>
+      <a class="nav-card" href="https://github.com/jianxi-dev/mdpkg/blob/main/README.md">
+        <span class="nav-title">CLI 文档</span>
+        <span class="nav-desc">README —— pack / validate / render / unpack / export / diff 全部命令</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-row">
+      <span>规范 CC BY 4.0 · 代码 MIT · 测试向量 CC0</span>
+      <span>mdpkg · jianxi（渐晰）</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
