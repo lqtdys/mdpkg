@@ -1,5 +1,14 @@
 # mdpkg — Markdown Enhanced
 
+<p align="center">
+  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/format-v1.0-blue" alt="格式版本 v1.0"></a>
+  <a href="https://jianxi-dev.github.io/mdpkg/spec.html"><img src="https://img.shields.io/badge/tests-81%2F81-green" alt="测试 81/81"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/LICENSE"><img src="https://img.shields.io/badge/code-MIT-blue" alt="代码许可证 MIT"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/spec/mdpkg-format-spec.md"><img src="https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey" alt="规范许可证 CC BY 4.0"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg"><img src="https://img.shields.io/github/stars/jianxi-dev/mdpkg" alt="GitHub Stars"></a>
+  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/website-jianxi--dev.github.io%2Fmdpkg-orange" alt="官方站点"></a>
+</p>
+
 把一篇带图、分章节的 Markdown 文档，打包成**一个可校验、可离线打开、可重复构建的 `.mdpkg` 文件**。
 
 ```bash
