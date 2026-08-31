@@ -275,7 +275,7 @@ Codex 方案整体质量高（manifest 中心化、相对路径、可重复构�
 | 3 | 符号集范围 | 先 core，extended 后置；映射表来源声明许可证（PyMdown MIT） |
 | 4 | 编辑模式 | 重打包重建 manifest（以实际扫描结果为准） |
 | 5 | 规范许可证与治理 | CC-BY 4.0（规范文本）/ MIT（代码）双轨，扩展注册制 v1 后可缓；**测试向量 `spec/fixtures/` 单独 CC0**（需被任意实现无摩擦复制，CC-BY 的署名义务是摩擦）；符号映射表参考 PyMdown（MIT），采用时保留其版权声明 |
-| 6 | MIME/文件关联 | 规范稳定后注册 `application/vnd.mdpkg+zip` |
+| 6 | MIME/文件关联 | 规范稳定后注册 `application/vnd.md-pkg+zip` |
 
 ---
 
@@ -298,6 +298,16 @@ Codex 方案整体质量高（manifest 中心化、相对路径、可重复构�
 5. ✅ **技术选型已锁定**：`remark/unified`（符号转换 = 遍历 mdast `text` 节点——code / inlineCode / link.url / html 天然不是 text 节点，零自研解析器即满足 §4.2 全部排除区）+ `fflate`（可精确控制条目顺序与 mtime，直接满足 §3.4 可重复构建；流式 Unzip 便于解压中计数做炸弹防护）+ `rehype-sanitize` + `ajv` + `node:test`（Node 22+ 内置，零新增依赖）。
 
 > 注：实现代码放本仓库 `packages/`（AGENTS.md 的「实现应放 `~/mdpkg`」已失效——`~/mdpkg` 就是本仓库，与 ANTI-PATTERNS「本仓库不创建实现代码」自相矛盾，需同步修订 AGENTS.md）。
+
+---
+
+---
+
+## 15. 改名记录（2026-08-31）
+
+- 用户拍板：MDE → **mdpkg** 统一命名（格式名 mdpkg / Markdown Package，扩展名 `.mdpkg`，错误码 `MDPKG-EXXX`，manifest 标识字段 `"format": "mdpkg"`，MIME `application/vnd.md-pkg+zip`）。
+- 仓库重组：三仓库拆分——`lqtdys/mdpkg`（格式+CLI，本仓库）、`lqtdys/md-bundle`（网页工具，占位）、`lqtdys/clairis`（桌面旗舰）。
+- 历史文档（PLAN.md / PROPOSAL_COD.md / comparison.md）保留原名原文，仅供历史追溯。
 
 ---
 

@@ -71,14 +71,14 @@ unzip -l out.mdpkg                                 # 互操作验证：通用 ZI
 
 # 仓库
 git log --oneline          # 变更历史
-git status                 # 工作区状态（注意 PLAN_MERGED.md / spec/ / packages/ 均未跟踪）
+git status                 # 工作区状态（PLAN_MERGED.md / spec/ / packages/ / plans/ 已在 ae3ffd7 跟踪提交）
 ```
 
 ## NOTES
 
 - 立场已收敛：v1 = ZIP + manifest.json 容器（见 PLAN_MERGED.md）。PLAN.md / PROPOSAL_COD.md / comparison.md 均为历史输入，**写作时引用 PLAN_MERGED.md，避免三者混用**。
 - 安全风险已在 PLAN_MERGED.md §8/§9 记录：ZIP 解包需防目录遍历、炸弹、符号链接与 include 放大。
-- **`PLAN_MERGED.md` / `spec/` / `packages/` / `plans/` 均为 git 未跟踪文件**（只有一个 init commit），改动无法回滚，编辑前先确认。
+- **全部文档与实现已在提交 ae3ffd7 跟踪提交**。PLAN_MERGED.md / spec/ / packages/ / plans/ 均受版本控制。
 - M0 可行性探针（S1–S4）已全部 PASS，结论见 `plans/mdpkg-review-round2.md` §2.4.1。两个实测陷阱：fflate 的 `size` 是压缩后大小（`originalSize` 才是原始，用错会让炸弹防护失效）；符号转义必须用哨兵法（Markdown 解析会先消费反斜杠）。
 - 规范测试集（conformance fixtures）定义在 `spec/mdpkg-format-spec.md` 附录 B，**尚未落盘**。
 
@@ -91,3 +91,4 @@ git status                 # 工作区状态（注意 PLAN_MERGED.md / spec/ / p
 - **M0–M6 全部完成**（M7 为延后项）。测试入口：`cd packages/mdpkg && node --test test/*.test.ts`，**79/79**（36 单测 + 43 conformance fixture）。
 - 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；M7（VS Code 插件）在采用可行性验证前不启动。（`unpack-roundtrip` fixture 已于收尾补齐，规范清单 43 个用例全覆盖）
 - 定位：先自用后标准化，3 个月止损判据；VS Code 插件（M7）在采用可行性验证前不启动。
+- 2026-08-31：MDE → mdpkg 统一改名完成（错误码 MDPKG-EXXX，manifest 标识字段 format:"mdpkg"），三仓库拆分：mdpkg（本仓库，格式+CLI）/ md-bundle（网页工具占位，新建）/ clairis（桌面旗舰）
