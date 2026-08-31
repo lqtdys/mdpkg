@@ -3,6 +3,7 @@
 // 消毒放在内联之前：这样 sanitize 不必为 data: 开白名单（hast-util-sanitize 默认 src 只允许 http/https）
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
@@ -75,6 +76,7 @@ export function render(files: Map<string, Uint8Array>, opts: RenderOptions = {})
 
   const html = unified()
     .use(remarkParse)
+    .use(remarkGfm)
     .use(symbolsPlugin, { enabled: opts.symbols !== false && manifest.extensions?.symbols !== 'off' })
     .use(remarkRehype)
     .use(rehypeSanitize) // 清 script / on* / javascript: 等

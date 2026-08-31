@@ -13,14 +13,40 @@
 <h2>1. 范围与术语</h2>
 <p><strong>mdpkg</strong>（Markdown Enhanced）是一种以标准 ZIP 为容器、以 <code>manifest.json</code> 为元数据源的 Markdown 文档包格式，用于<strong>单文件交付</strong>：一个 <code>.mdpkg</code> 文件包含主文档、全部引用资源与可包含的子文档。</p>
 <p>v1 提供三项能力：资源随包（P0）、符号扩展（P1）、包内文件包含（P2）。</p>
-<p>| 术语 | 定义 |
-|---|---|
-| 包（package） | 一个 <code>.mdpkg</code> 文件，即一个符合本规范的 ZIP 归档 |
-| 包根（package root） | ZIP 内的逻辑根目录，所有包内路径相对它解析 |
-| 入口（entrypoint） | 主 Markdown 文档的包内路径，<code>manifest.entrypoint</code> 为唯一真源 |
-| 资源（resource） | 包内除 <code>manifest.json</code> 外的任何文件，含入口文档本身 |
-| 引用闭包 | 从入口出发，经 include 展开后可达的全部本地引用集合 |
-| 展开（expansion） | include 指令被替换为其目标文件内容后的文本状态 |</p>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>包（package）</td>
+<td>一个 <code>.mdpkg</code> 文件，即一个符合本规范的 ZIP 归档</td>
+</tr>
+<tr>
+<td>包根（package root）</td>
+<td>ZIP 内的逻辑根目录，所有包内路径相对它解析</td>
+</tr>
+<tr>
+<td>入口（entrypoint）</td>
+<td>主 Markdown 文档的包内路径，<code>manifest.entrypoint</code> 为唯一真源</td>
+</tr>
+<tr>
+<td>资源（resource）</td>
+<td>包内除 <code>manifest.json</code> 外的任何文件，含入口文档本身</td>
+</tr>
+<tr>
+<td>引用闭包</td>
+<td>从入口出发，经 include 展开后可达的全部本地引用集合</td>
+</tr>
+<tr>
+<td>展开（expansion）</td>
+<td>include 指令被替换为其目标文件内容后的文本状态</td>
+</tr>
+</tbody>
+</table>
 <p><strong>「单文件」的精确含义：</strong> 交付与传输只有一个文件。它<strong>不</strong>表示 Markdown 内容以 Base64 内嵌，也<strong>不</strong>表示普通文本编辑器打开 <code>.mdpkg</code> 即可获得完整渲染。</p>
 <hr>
 <h2>2. 容器格式</h2>
@@ -43,11 +69,28 @@
 </ul>
 <p>任一条件不成立 → 实现 MUST 按「普通 ZIP」处理，<strong>不得</strong>强行当作 mdpkg，也<strong>不得</strong>猜测修复。</p>
 <h3>2.3 压缩策略</h3>
-<p>| 内容 | 方法 |
-|---|---|
-| Markdown / JSON / 纯文本 | DEFLATE（级别 9） |
-| PNG / JPEG / GIF / WebP / 音视频 / PDF / 已压缩归档 | Store（不压缩） |
-| 其他 | 实现 MAY 自行决定，SHOULD 默认 Store |</p>
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Markdown / JSON / 纯文本</td>
+<td>DEFLATE（级别 9）</td>
+</tr>
+<tr>
+<td>PNG / JPEG / GIF / WebP / 音视频 / PDF / 已压缩归档</td>
+<td>Store（不压缩）</td>
+</tr>
+<tr>
+<td>其他</td>
+<td>实现 MAY 自行决定，SHOULD 默认 Store</td>
+</tr>
+</tbody>
+</table>
 <p>理由：已压缩媒体二次压缩无收益且浪费 CPU。</p>
 <h3>2.4 可重复构建（MUST）</h3>
 <p>同一输入目录两次打包 MUST 产生<strong>字节相同</strong>的包。为此：</p>
@@ -107,30 +150,125 @@
   ]
 }
 </code></pre>
-<p>| 字段 | 类型 | 必需 | 说明 |
-|---|---|---|---|
-| <code>format</code> | string | ✅ | 格式标识，恒为 <code>"mdpkg"</code> |
-| <code>spec_version</code> | string | ✅ | <code>"&#x3C;major>.&#x3C;minor>"</code>，本规范为 <code>"1.0"</code> |
-| <code>entrypoint</code> | string | ❌ | 入口文档包内路径；省略时取 <code>"document.md"</code> |
-| <code>encoding</code> | string | ❌ | 恒为 <code>"utf-8"</code>；省略时同 |
-| <code>extensions</code> | object | ❌ | 作者意图：<code>symbols</code> ∈ <code>off\|core\|extended</code>（默认 <code>core</code>）、<code>include</code> ∈ <code>true\|false</code>（默认 <code>true</code>） |
-| <code>extensions_required</code> | string[] | ❌ | 硬依赖列表；渲染器不支持其中任何一项 MUST 报错退出，不得静默降级 |
-| <code>resources</code> | array | ✅ | 资源索引，见下 |
-| <code>resources[].path</code> | string | ✅ | 包内相对路径，已 NFC 归一化 |
-| <code>resources[].media_type</code> | string | ✅ | IANA 媒体类型；未知用 <code>application/octet-stream</code> |
-| <code>resources[].size</code> | integer | ✅ | 未压缩字节数 |
-| <code>resources[].sha256</code> | string | ✅ | 小写 64 位十六进制 |
-| <code>resources[].source_url</code> | string | ❌ | 仅当该资源由外链下载得到时存在 |</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必需</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>format</code></td>
+<td>string</td>
+<td>✅</td>
+<td>格式标识，恒为 <code>"mdpkg"</code></td>
+</tr>
+<tr>
+<td><code>spec_version</code></td>
+<td>string</td>
+<td>✅</td>
+<td><code>"&#x3C;major>.&#x3C;minor>"</code>，本规范为 <code>"1.0"</code></td>
+</tr>
+<tr>
+<td><code>entrypoint</code></td>
+<td>string</td>
+<td>❌</td>
+<td>入口文档包内路径；省略时取 <code>"document.md"</code></td>
+</tr>
+<tr>
+<td><code>encoding</code></td>
+<td>string</td>
+<td>❌</td>
+<td>恒为 <code>"utf-8"</code>；省略时同</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>object</td>
+<td>❌</td>
+<td>作者意图：<code>symbols</code> ∈ <code>off|core|extended</code>（默认 <code>core</code>）、<code>include</code> ∈ <code>true|false</code>（默认 <code>true</code>）</td>
+</tr>
+<tr>
+<td><code>extensions_required</code></td>
+<td>string[]</td>
+<td>❌</td>
+<td>硬依赖列表；渲染器不支持其中任何一项 MUST 报错退出，不得静默降级</td>
+</tr>
+<tr>
+<td><code>resources</code></td>
+<td>array</td>
+<td>✅</td>
+<td>资源索引，见下</td>
+</tr>
+<tr>
+<td><code>resources[].path</code></td>
+<td>string</td>
+<td>✅</td>
+<td>包内相对路径，已 NFC 归一化</td>
+</tr>
+<tr>
+<td><code>resources[].media_type</code></td>
+<td>string</td>
+<td>✅</td>
+<td>IANA 媒体类型；未知用 <code>application/octet-stream</code></td>
+</tr>
+<tr>
+<td><code>resources[].size</code></td>
+<td>integer</td>
+<td>✅</td>
+<td>未压缩字节数</td>
+</tr>
+<tr>
+<td><code>resources[].sha256</code></td>
+<td>string</td>
+<td>✅</td>
+<td>小写 64 位十六进制</td>
+</tr>
+<tr>
+<td><code>resources[].source_url</code></td>
+<td>string</td>
+<td>❌</td>
+<td>仅当该资源由外链下载得到时存在</td>
+</tr>
+</tbody>
+</table>
 <p><code>resources</code> MUST 覆盖包内除 <code>manifest.json</code> 外的<strong>全部</strong>文件，<strong>包含入口文档自身</strong>。
 <code>resources</code> 顺序 MUST 按 <code>path</code> 码位升序。</p>
 <h3>4.2 字段归属（编辑-重打包周期的关键规则）</h3>
 <p>用户解包 → 编辑 → 重打包时，<code>mdpkg pack</code> MUST 按下表处理：</p>
-<p>| 字段 | 归属 | 重打包行为 |
-|---|---|---|
-| <code>resources[]</code>、<code>size</code>、<code>sha256</code>、<code>media_type</code> | 机器事实 | <strong>每次重算</strong>，覆盖原值 |
-| <code>entrypoint</code>、<code>extensions</code>、<code>extensions_required</code>、<code>encoding</code> | 作者意图 | <strong>存在则保留</strong>，缺失才取默认值 |
-| <code>spec_version</code> | 工具版本 | 由工具决定，<strong>不继承</strong> |
-| <code>resources[].source_url</code> | 历史来源 | 保留 |</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>归属</th>
+<th>重打包行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resources[]</code>、<code>size</code>、<code>sha256</code>、<code>media_type</code></td>
+<td>机器事实</td>
+<td><strong>每次重算</strong>，覆盖原值</td>
+</tr>
+<tr>
+<td><code>entrypoint</code>、<code>extensions</code>、<code>extensions_required</code>、<code>encoding</code></td>
+<td>作者意图</td>
+<td><strong>存在则保留</strong>，缺失才取默认值</td>
+</tr>
+<tr>
+<td><code>spec_version</code></td>
+<td>工具版本</td>
+<td>由工具决定，<strong>不继承</strong></td>
+</tr>
+<tr>
+<td><code>resources[].source_url</code></td>
+<td>历史来源</td>
+<td>保留</td>
+</tr>
+</tbody>
+</table>
 <p>理由：把两类字段混为一谈，会在重打包时把作者配置冲掉，或让过期哈希永久驻留。</p>
 <hr>
 <h2>5. 路径与编码规则</h2>
@@ -184,13 +322,48 @@
 <h3>7.1 符号扩展</h3>
 <p><strong>定位：</strong> 渲染期转换，作用于普通文本节点，<strong>不修改包内原始 Markdown</strong>。可配置，默认 <code>core</code>。</p>
 <p><strong>Core profile 映射表（v1 唯一强制集）：</strong></p>
-<p>| 输入 | 输出 | 输入 | 输出 |
-|---|---|---|---|
-| <code>(tm)</code> | ™ | <code>--></code> | → |
-| <code>(c)</code> | © | <code>&#x3C;--</code> | ← |
-| <code>(r)</code> | ® | <code>&#x3C;--></code> | ↔ |
-| <code>+/-</code> | ± | <code>&#x3C;=</code> | ≤ |
-| <code>=/=</code> | ≠ | <code>>=</code> | ≥ |</p>
+<table>
+<thead>
+<tr>
+<th>输入</th>
+<th>输出</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>(tm)</code></td>
+<td>™</td>
+<td><code>--></code></td>
+<td>→</td>
+</tr>
+<tr>
+<td><code>(c)</code></td>
+<td>©</td>
+<td><code>&#x3C;--</code></td>
+<td>←</td>
+</tr>
+<tr>
+<td><code>(r)</code></td>
+<td>®</td>
+<td><code>&#x3C;--></code></td>
+<td>↔</td>
+</tr>
+<tr>
+<td><code>+/-</code></td>
+<td>±</td>
+<td><code>&#x3C;=</code></td>
+<td>≤</td>
+</tr>
+<tr>
+<td><code>=/=</code></td>
+<td>≠</td>
+<td><code>>=</code></td>
+<td>≥</td>
+</tr>
+</tbody>
+</table>
 <p><strong>Extended profile：</strong> 不在 v1 实现范围。含 <code>...</code>→<code>…</code>、<code>1/2</code>→<code>½</code> 等分数/排版符号——它们对路径、命令、版本号、省略号误伤风险高，需更充分的边界数据后再定。映射表参考 PyMdown Extensions（MIT），采用时 MUST 保留其版权声明。</p>
 <p><strong>排除区（MUST NOT 转换）</strong>：代码块、行内代码、链接与图片的目标地址、HTML 属性、原始 HTML 块、自动链接。</p>
 <p>实现提示：在 mdast 上遍历 <code>text</code> 节点即可天然满足上式——code / inlineCode / link.url / html 均不是 <code>text</code> 节点，无需自研 tokenizer。</p>
@@ -212,8 +385,8 @@
 <p>成本约 3 行，无源码偏移映射，不受实体引用/多字节影响。可选替代（未采用）：取消 <code>\</code> 转义语法，改用行内代码 <code>`(tm)`</code> 作为保留字面的手段——零实现成本，但牺牲「在普通文本中保留字面且不显示为代码」的能力。</p>
 <h3>7.2 文件包含</h3>
 <p><strong>语法：</strong></p>
-<pre><code class="language-markdown"> <<< includes/chapter-1.md
- <<< "includes/a b.md"
+<pre><code class="language-markdown"> &#x26;lt;&#x26;lt;&#x26;lt; includes/chapter-1.md
+ &#x26;lt;&#x26;lt;&#x26;lt; "includes/a b.md"
 </code></pre>
 <p><strong>触发规则（MUST）：</strong> 指令仅在<strong>列 0</strong>（行首无缩进）且整行匹配正则 <code>^&#x3C;&#x3C;&#x3C;\s*(.+?)\s*$</code> 时触发。</p>
 <blockquote>
@@ -236,11 +409,32 @@
 </ul>
 <p><strong>嵌套：</strong> 允许嵌套包含，逐层递归执行同一管线（展开 → 解析 → 符号转换），深度计入上限。</p>
 <p><strong>硬限制（MUST，默认值必须存在）：</strong></p>
-<p>| 限制 | 默认值 | 错误码 |
-|---|---|---|
-| 最大深度 | 32 | <code>MDPKG-E504</code> |
-| 单文档展开后总字节 | 10 MB | <code>MDPKG-E505</code> |
-| 单包内 include 指令总次数 | 1000 | <code>MDPKG-E506</code> |</p>
+<table>
+<thead>
+<tr>
+<th>限制</th>
+<th>默认值</th>
+<th>错误码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最大深度</td>
+<td>32</td>
+<td><code>MDPKG-E504</code></td>
+</tr>
+<tr>
+<td>单文档展开后总字节</td>
+<td>10 MB</td>
+<td><code>MDPKG-E505</code></td>
+</tr>
+<tr>
+<td>单包内 include 指令总次数</td>
+<td>1000</td>
+<td><code>MDPKG-E506</code></td>
+</tr>
+</tbody>
+</table>
 <p><strong>循环检测（MUST）：</strong> 维护展开栈，同一文件在栈中重复出现即报 <code>MDPKG-E507</code>。</p>
 <p><strong>错误定位（SHOULD）：</strong> 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。</p>
 <hr>
@@ -272,12 +466,37 @@
 <p>实现 MUST NOT 在输出信息中把校验通过描述为「未被篡改 / 可信 / 已验证来源」。</p>
 <h3>8.4 解包安全（MUST）</h3>
 <p>实现 MUST 在解包/读取时强制下列上限，且默认值必须存在（可用参数覆盖）：</p>
-<p>| 限制 | 默认值 | 错误码 |
-|---|---|---|
-| 资源总数 | 10 000 | <code>MDPKG-E602</code> |
-| 单文件解压后字节 | 200 MB | <code>MDPKG-E603</code> |
-| 总解压字节 | 1 GB | <code>MDPKG-E604</code> |
-| 单条目压缩比 | 1000:1 | <code>MDPKG-E605</code> |</p>
+<table>
+<thead>
+<tr>
+<th>限制</th>
+<th>默认值</th>
+<th>错误码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>资源总数</td>
+<td>10 000</td>
+<td><code>MDPKG-E602</code></td>
+</tr>
+<tr>
+<td>单文件解压后字节</td>
+<td>200 MB</td>
+<td><code>MDPKG-E603</code></td>
+</tr>
+<tr>
+<td>总解压字节</td>
+<td>1 GB</td>
+<td><code>MDPKG-E604</code></td>
+</tr>
+<tr>
+<td>单条目压缩比</td>
+<td>1000:1</td>
+<td><code>MDPKG-E605</code></td>
+</tr>
+</tbody>
+</table>
 <p>检测 MUST 在解压<strong>过程中</strong>流式计数，不得先完整解压再统计（否则 ZIP 炸弹防护失效）。判定只需读条目的 central directory header，<strong>达到上限即不启动该条目的解压流</strong>——实测 120 MB 炸弹（120 KB 压缩包）只读 header 拒绝耗时 0 ms，完整解压需 156 ms，且未落盘。</p>
 <blockquote>
 <p><strong>实现陷阱（实测，fflate）：</strong> <code>Unzip</code> 回调暴露的 <code>size</code> 是<strong>压缩后</strong>大小，<code>originalSize</code> 才是解压后大小；<code>compressedSize</code> 为 <code>undefined</code>。误用 <code>size</code> 做上限判定会让炸弹防护<strong>完全失效</strong>。另：<code>Unzip</code> 的文件回调必须传给<strong>构造函数</strong> <code>new Unzip(cb)</code>，<code>register()</code> 只用于注册编解码器；否则抛 <code>no stream handler</code>。</p>
@@ -289,16 +508,48 @@
 <li><code>extensions_required</code> 中存在实现不支持的项 → MUST 报错退出（<code>MDPKG-E702</code>），<strong>不得</strong>静默降级。</li>
 </ul>
 <h3>8.6 命令契约</h3>
-<p>| 命令 | 说明 |
-|---|---|
-| <code>mdpkg pack &#x3C;dir> -o out.mdpkg</code> | §6.2 |
-| <code>mdpkg unpack &#x3C;pkg> -o dir</code> | 还原为目录；强制 §8.4 上限 |
-| <code>mdpkg list &#x3C;pkg></code> | 列出 <code>resources[]</code>（path / media_type / size） |
-| <code>mdpkg validate &#x3C;pkg></code> | Schema + size + sha256 + 路径规则 + 限制项；统计外链数并提示「本包含 N 个外部引用，不可完全离线」 |
-| <code>mdpkg render &#x3C;pkg></code> | 见 §8.7 |
-| <code>mdpkg export --raw &#x3C;pkg> -o dir</code> | 输出<strong>目录</strong>，保持包内结构，文本一字不改 |
-| <code>mdpkg export --expanded &#x3C;pkg> -o dir</code> | 输出<strong>目录</strong>，含一份展开后的 Markdown（include 已展开、相对 URL 已按 §7.2 重写）+ 全部资源 |
-| <code>mdpkg diff &#x3C;a> &#x3C;b></code> | 双方解包到临时目录后 <code>diff -ruN</code> |</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mdpkg pack &#x3C;dir> -o out.mdpkg</code></td>
+<td>§6.2</td>
+</tr>
+<tr>
+<td><code>mdpkg unpack &#x3C;pkg> -o dir</code></td>
+<td>还原为目录；强制 §8.4 上限</td>
+</tr>
+<tr>
+<td><code>mdpkg list &#x3C;pkg></code></td>
+<td>列出 <code>resources[]</code>（path / media_type / size）</td>
+</tr>
+<tr>
+<td><code>mdpkg validate &#x3C;pkg></code></td>
+<td>Schema + size + sha256 + 路径规则 + 限制项；统计外链数并提示「本包含 N 个外部引用，不可完全离线」</td>
+</tr>
+<tr>
+<td><code>mdpkg render &#x3C;pkg></code></td>
+<td>见 §8.7</td>
+</tr>
+<tr>
+<td><code>mdpkg export --raw &#x3C;pkg> -o dir</code></td>
+<td>输出<strong>目录</strong>，保持包内结构，文本一字不改</td>
+</tr>
+<tr>
+<td><code>mdpkg export --expanded &#x3C;pkg> -o dir</code></td>
+<td>输出<strong>目录</strong>，含一份展开后的 Markdown（include 已展开、相对 URL 已按 §7.2 重写）+ 全部资源</td>
+</tr>
+<tr>
+<td><code>mdpkg diff &#x3C;a> &#x3C;b></code></td>
+<td>双方解包到临时目录后 <code>diff -ruN</code></td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p><code>--raw</code> MUST 输出目录而非单文件：未展开的文档其 include 指令与相对路径在其他层级下无意义，输出成单文件必然损坏。<code>--expanded</code> 的产出可被任何标准 Markdown 工具打开。</p>
 </blockquote>
@@ -313,54 +564,232 @@
 </ul>
 <hr>
 <h2>9. 兼容性（三层）</h2>
-<p>| 层 | 承诺 |
-|---|---|
-| 容器兼容 | <code>.mdpkg</code> 是标准 ZIP，<code>unzip -l</code> / <code>unzip -p</code> 可列可提 |
-| 文档兼容 | 包内 Markdown 是标准 Markdown + 相对路径；符号保持源文本；<code>&#x3C;&#x3C;&#x3C;</code> 降级为可见文本 |
-| 导出兼容 | <code>export --raw</code> / <code>--expanded</code> 的产出可被任何标准 Markdown 工具打开 |</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>承诺</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>容器兼容</td>
+<td><code>.mdpkg</code> 是标准 ZIP，<code>unzip -l</code> / <code>unzip -p</code> 可列可提</td>
+</tr>
+<tr>
+<td>文档兼容</td>
+<td>包内 Markdown 是标准 Markdown + 相对路径；符号保持源文本；<code>&#x3C;&#x3C;&#x3C;</code> 降级为可见文本</td>
+</tr>
+<tr>
+<td>导出兼容</td>
+<td><code>export --raw</code> / <code>--expanded</code> 的产出可被任何标准 Markdown 工具打开</td>
+</tr>
+</tbody>
+</table>
 <p><strong>不承诺：</strong> 普通文本编辑器直接打开 <code>.mdpkg</code> 即获得完整渲染。</p>
 <hr>
 <h2>附录 A：错误码表</h2>
-<p>| 码 | 含义 | 触发 |
-|---|---|---|
-| <strong>1xx 容器</strong> |||
-| <code>MDPKG-E101</code> | 不是有效 ZIP | 打开阶段 |
-| <code>MDPKG-E102</code> | 缺少 <code>manifest.json</code> | 识别阶段 |
-| <code>MDPKG-E103</code> | 识别失败，按普通 ZIP 处理 | 非错误，仅提示 |
-| <strong>2xx 路径/编码</strong> |||
-| <code>MDPKG-E201</code> | 路径冲突（归一化或大小写后重复） | pack |
-| <code>MDPKG-E202</code> | 非法路径（<code>..</code> / 绝对 / 空段 / NUL / 盘符） | pack / unpack |
-| <code>MDPKG-E203</code> | 非 UTF-8 文本或含 BOM | pack |
-| <code>MDPKG-E204</code> | 路径超长（> 1024 字节） | pack |
-| <strong>3xx manifest</strong> |||
-| <code>MDPKG-E301</code> | 无法确定入口文档 | pack |
-| <code>MDPKG-E302</code> | manifest 不符合 Schema | validate |
-| <code>MDPKG-E303</code> | <code>entrypoint</code> 指向不存在或非 Markdown | validate |
-| <code>MDPKG-E304</code> | <code>resources</code> 未覆盖包内全部文件 | validate |
-| <strong>4xx 资源</strong> |||
-| <code>MDPKG-E401</code> | 引用的本地资源缺失 | pack |
-| <code>MDPKG-E402</code> | 资源 size 不符 | validate |
-| <code>MDPKG-E403</code> | 资源 sha256 不符（<strong>完整性问题，非篡改证据</strong>） | validate |
-| <code>MDPKG-E404</code> | 孤儿资源（warning，非错误） | pack |
-| <strong>5xx include</strong> |||
-| <code>MDPKG-E501</code> | include 目标在包外 | render / export |
-| <code>MDPKG-E502</code> | include 目标是 URL 或外部包 | render / export |
-| <code>MDPKG-E503</code> | include 目标非 Markdown | render / export |
-| <code>MDPKG-E504</code> | 深度超限（默认 32） | render / export |
-| <code>MDPKG-E505</code> | 展开后字节超限（默认 10 MB） | render / export |
-| <code>MDPKG-E506</code> | include 次数超限（默认 1000） | render / export |
-| <code>MDPKG-E507</code> | 检测到循环包含 | render / export |
-| <code>MDPKG-E508</code> | include 目标不存在 | render / export |
-| <strong>6xx 安全/限制</strong> |||
-| <code>MDPKG-E601</code> | 符号链接 / 硬链接条目 | pack / unpack |
-| <code>MDPKG-E602</code> | 资源总数超限 | unpack |
-| <code>MDPKG-E603</code> | 单文件解压字节超限 | unpack |
-| <code>MDPKG-E604</code> | 总解压字节超限 | unpack |
-| <code>MDPKG-E605</code> | 压缩比异常（疑似 ZIP 炸弹） | unpack |
-| <strong>7xx 扩展/版本</strong> |||
-| <code>MDPKG-E701</code> | spec_version 主版本不支持 | 任何读操作 |
-| <code>MDPKG-E702</code> | <code>extensions_required</code> 含不支持项 | render |
-| <code>MDPKG-E703</code> | 未知扩展字段（warning，忽略） | validate |</p>
+<table>
+<thead>
+<tr>
+<th>码</th>
+<th>含义</th>
+<th>触发</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1xx 容器</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E101</code></td>
+<td>不是有效 ZIP</td>
+<td>打开阶段</td>
+</tr>
+<tr>
+<td><code>MDPKG-E102</code></td>
+<td>缺少 <code>manifest.json</code></td>
+<td>识别阶段</td>
+</tr>
+<tr>
+<td><code>MDPKG-E103</code></td>
+<td>识别失败，按普通 ZIP 处理</td>
+<td>非错误，仅提示</td>
+</tr>
+<tr>
+<td><strong>2xx 路径/编码</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E201</code></td>
+<td>路径冲突（归一化或大小写后重复）</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E202</code></td>
+<td>非法路径（<code>..</code> / 绝对 / 空段 / NUL / 盘符）</td>
+<td>pack / unpack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E203</code></td>
+<td>非 UTF-8 文本或含 BOM</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E204</code></td>
+<td>路径超长（> 1024 字节）</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><strong>3xx manifest</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E301</code></td>
+<td>无法确定入口文档</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E302</code></td>
+<td>manifest 不符合 Schema</td>
+<td>validate</td>
+</tr>
+<tr>
+<td><code>MDPKG-E303</code></td>
+<td><code>entrypoint</code> 指向不存在或非 Markdown</td>
+<td>validate</td>
+</tr>
+<tr>
+<td><code>MDPKG-E304</code></td>
+<td><code>resources</code> 未覆盖包内全部文件</td>
+<td>validate</td>
+</tr>
+<tr>
+<td><strong>4xx 资源</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E401</code></td>
+<td>引用的本地资源缺失</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E402</code></td>
+<td>资源 size 不符</td>
+<td>validate</td>
+</tr>
+<tr>
+<td><code>MDPKG-E403</code></td>
+<td>资源 sha256 不符（<strong>完整性问题，非篡改证据</strong>）</td>
+<td>validate</td>
+</tr>
+<tr>
+<td><code>MDPKG-E404</code></td>
+<td>孤儿资源（warning，非错误）</td>
+<td>pack</td>
+</tr>
+<tr>
+<td><strong>5xx include</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E501</code></td>
+<td>include 目标在包外</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E502</code></td>
+<td>include 目标是 URL 或外部包</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E503</code></td>
+<td>include 目标非 Markdown</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E504</code></td>
+<td>深度超限（默认 32）</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E505</code></td>
+<td>展开后字节超限（默认 10 MB）</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E506</code></td>
+<td>include 次数超限（默认 1000）</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E507</code></td>
+<td>检测到循环包含</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><code>MDPKG-E508</code></td>
+<td>include 目标不存在</td>
+<td>render / export</td>
+</tr>
+<tr>
+<td><strong>6xx 安全/限制</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E601</code></td>
+<td>符号链接 / 硬链接条目</td>
+<td>pack / unpack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E602</code></td>
+<td>资源总数超限</td>
+<td>unpack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E603</code></td>
+<td>单文件解压字节超限</td>
+<td>unpack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E604</code></td>
+<td>总解压字节超限</td>
+<td>unpack</td>
+</tr>
+<tr>
+<td><code>MDPKG-E605</code></td>
+<td>压缩比异常（疑似 ZIP 炸弹）</td>
+<td>unpack</td>
+</tr>
+<tr>
+<td><strong>7xx 扩展/版本</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>MDPKG-E701</code></td>
+<td>spec_version 主版本不支持</td>
+<td>任何读操作</td>
+</tr>
+<tr>
+<td><code>MDPKG-E702</code></td>
+<td><code>extensions_required</code> 含不支持项</td>
+<td>render</td>
+</tr>
+<tr>
+<td><code>MDPKG-E703</code></td>
+<td>未知扩展字段（warning，忽略）</td>
+<td>validate</td>
+</tr>
+</tbody>
+</table>
 <p>退出码：<code>0</code> 成功；<code>1</code> 校验/业务错误（伴随上表错误码）；<code>2</code> 用法错误；<code>3</code> 内部错误。</p>
 <hr>
 <h2>附录 B：一致性测试向量（Conformance Fixtures）</h2>
@@ -386,15 +815,44 @@
   }
 }
 </code></pre>
-<p>| 字段 | 说明 |
-|---|---|
-| <code>kind</code> | <code>pack</code> / <code>unpack</code> / <code>list</code> / <code>validate</code> / <code>render</code> / <code>export</code> / <code>diff</code> |
-| <code>expect.exitCode</code> | 期望退出码 |
-| <code>expect.errorCode</code> | 期望错误码（负向用例必填） |
-| <code>expect.manifest</code> | 期望 manifest 路径（逐字段比对，<code>resources[].sha256</code> 必比对） |
-| <code>expect.tree</code> | 期望解包目录树（路径 + 大小） |
-| <code>expect.html</code> | 期望 HTML 路径（<code>render</code> 用例，比对规范化后的 DOM） |
-| <code>expect.stderrContains</code> | 期望 stderr 包含的子串 |</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td><code>pack</code> / <code>unpack</code> / <code>list</code> / <code>validate</code> / <code>render</code> / <code>export</code> / <code>diff</code></td>
+</tr>
+<tr>
+<td><code>expect.exitCode</code></td>
+<td>期望退出码</td>
+</tr>
+<tr>
+<td><code>expect.errorCode</code></td>
+<td>期望错误码（负向用例必填）</td>
+</tr>
+<tr>
+<td><code>expect.manifest</code></td>
+<td>期望 manifest 路径（逐字段比对，<code>resources[].sha256</code> 必比对）</td>
+</tr>
+<tr>
+<td><code>expect.tree</code></td>
+<td>期望解包目录树（路径 + 大小）</td>
+</tr>
+<tr>
+<td><code>expect.html</code></td>
+<td>期望 HTML 路径（<code>render</code> 用例，比对规范化后的 DOM）</td>
+</tr>
+<tr>
+<td><code>expect.stderrContains</code></td>
+<td>期望 stderr 包含的子串</td>
+</tr>
+</tbody>
+</table>
 <p><code>pack</code> 用例 MUST 额外断言<strong>可重复性</strong>：以相同输入打包两次，两次产物字节相同。</p>
 <h3>B.3 用例清单（Phase 0B 目标 ≥ 30）</h3>
 <blockquote>
