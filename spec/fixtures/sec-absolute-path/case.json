@@ -3,7 +3,7 @@
   "title": "拒绝绝对路径",
   "kind": "path",
   "expect": {
-    "errorCode": "MDE-E202",
+    "errorCode": "MDPKG-E202",
     "pathInput": "/etc/passwd"
   }
 }

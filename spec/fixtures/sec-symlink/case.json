@@ -3,6 +3,6 @@
   "title": "拒绝符号链接条目",
   "kind": "pack",
   "expect": {
-    "errorCode": "MDE-E601"
+    "errorCode": "MDPKG-E601"
   }
 }

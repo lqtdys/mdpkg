@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://mde.spec/schema/manifest-1.0.json",
-  "title": "MDE manifest v1.0",
+  "$id": "https://mdpkg.spec/schema/manifest-1.0.json",
+  "title": "mdpkg manifest v1.0",
   "type": "object",
-  "required": ["mde", "spec_version", "resources"],
+  "required": ["format", "spec_version", "resources"],
   "additionalProperties": false,
   "properties": {
-    "mde": { "const": "mde" },
+    "format": { "const": "mdpkg" },
     "spec_version": { "type": "string", "pattern": "^1\\.\\d+$" },
     "entrypoint": { "type": "string", "minLength": 1, "maxLength": 1024 },
     "encoding": { "const": "utf-8" },

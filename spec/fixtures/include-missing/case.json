@@ -3,6 +3,6 @@
   "title": "目标不存在报 E508",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E508"
+    "errorCode": "MDPKG-E508"
   }
 }

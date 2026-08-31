@@ -1,4 +1,4 @@
-# MDE Format Specification v1.0（初稿）
+# mdpkg Format Specification v1.0（初稿）
 
 > 状态：**Phase 0A 初稿**。本文件是 `PLAN_MERGED.md` 的可执行展开；凡本文与 `PLAN_MERGED.md` 冲突，以本文为准并回写 `PLAN_MERGED.md`。
 > 关键字按 RFC 2119 解释：MUST / MUST NOT / SHOULD / SHOULD NOT / MAY。
@@ -8,20 +8,20 @@
 
 ## 1. 范围与术语
 
-**MDE**（Markdown Enhanced）是一种以标准 ZIP 为容器、以 `manifest.json` 为元数据源的 Markdown 文档包格式，用于**单文件交付**：一个 `.mde` 文件包含主文档、全部引用资源与可包含的子文档。
+**mdpkg**（Markdown Enhanced）是一种以标准 ZIP 为容器、以 `manifest.json` 为元数据源的 Markdown 文档包格式，用于**单文件交付**：一个 `.mdpkg` 文件包含主文档、全部引用资源与可包含的子文档。
 
 v1 提供三项能力：资源随包（P0）、符号扩展（P1）、包内文件包含（P2）。
 
 | 术语 | 定义 |
 |---|---|
-| 包（package） | 一个 `.mde` 文件，即一个符合本规范的 ZIP 归档 |
+| 包（package） | 一个 `.mdpkg` 文件，即一个符合本规范的 ZIP 归档 |
 | 包根（package root） | ZIP 内的逻辑根目录，所有包内路径相对它解析 |
 | 入口（entrypoint） | 主 Markdown 文档的包内路径，`manifest.entrypoint` 为唯一真源 |
 | 资源（resource） | 包内除 `manifest.json` 外的任何文件，含入口文档本身 |
 | 引用闭包 | 从入口出发，经 include 展开后可达的全部本地引用集合 |
 | 展开（expansion） | include 指令被替换为其目标文件内容后的文本状态 |
 
-**「单文件」的精确含义：** 交付与传输只有一个文件。它**不**表示 Markdown 内容以 Base64 内嵌，也**不**表示普通文本编辑器打开 `.mde` 即可获得完整渲染。
+**「单文件」的精确含义：** 交付与传输只有一个文件。它**不**表示 Markdown 内容以 Base64 内嵌，也**不**表示普通文本编辑器打开 `.mdpkg` 即可获得完整渲染。
 
 ---
 
@@ -38,14 +38,14 @@ v1 提供三项能力：资源随包（P0）、符号扩展（P1）、包内文�
 
 ### 2.2 识别
 
-一个文件是 MDE 包，当且仅当全部成立：
+一个文件是 mdpkg 包，当且仅当全部成立：
 
-- 扩展名为 `.mde`（不区分大小写）；且
+- 扩展名为 `.mdpkg`（不区分大小写）；且
 - 是有效 ZIP；且
 - 包根含 `manifest.json`；且
-- `manifest.json` 可解析为 JSON 对象，且 `mde` 字段等于字符串 `"mde"`，且 `spec_version` 存在且主版本号为实现所支持。
+- `manifest.json` 可解析为 JSON 对象，且 `format` 字段等于字符串 `"mdpkg"`，且 `spec_version` 存在且主版本号为实现所支持。
 
-任一条件不成立 → 实现 MUST 按「普通 ZIP」处理，**不得**强行当作 MDE，也**不得**猜测修复。
+任一条件不成立 → 实现 MUST 按「普通 ZIP」处理，**不得**强行当作 mdpkg，也**不得**猜测修复。
 
 ### 2.3 压缩策略
 
@@ -69,14 +69,14 @@ v1 提供三项能力：资源随包（P0）、符号扩展（P1）、包内文�
 5. 生成时间 MUST NOT 进入 `manifest.json`。
 6. 实现 MAY 提供 `--preserve-mtime`；启用时本条整体失效，实现 MUST 在输出中提示「已放弃可重复构建」。
 
-> 本条保证的是「同一输入 → 同一字节」，用于缓存、签名与误改动检测。它**不**使 ZIP 在 Git 中产生可读 diff；版本间差异请用 `mde diff`（§8.7）。
+> 本条保证的是「同一输入 → 同一字节」，用于缓存、签名与误改动检测。它**不**使 ZIP 在 Git 中产生可读 diff；版本间差异请用 `mdpkg diff`（§8.7）。
 
 ---
 
 ## 3. 目录结构
 
 ```text
-example.mde
+example.mdpkg
 ├── manifest.json        # 必需
 ├── document.md          # 入口，缺省名；实际路径以 manifest.entrypoint 为准
 ├── assets/              # 惯例，非强制
@@ -95,7 +95,7 @@ example.mde
 
 ```json
 {
-  "mde": "mde",
+  "format": "mdpkg",
   "spec_version": "1.0",
   "entrypoint": "document.md",
   "encoding": "utf-8",
@@ -124,7 +124,7 @@ example.mde
 
 | 字段 | 类型 | 必需 | 说明 |
 |---|---|---|---|
-| `mde` | string | ✅ | 格式标识，恒为 `"mde"` |
+| `format` | string | ✅ | 格式标识，恒为 `"mdpkg"` |
 | `spec_version` | string | ✅ | `"<major>.<minor>"`，本规范为 `"1.0"` |
 | `entrypoint` | string | ❌ | 入口文档包内路径；省略时取 `"document.md"` |
 | `encoding` | string | ❌ | 恒为 `"utf-8"`；省略时同 |
@@ -142,7 +142,7 @@ example.mde
 
 ### 4.2 字段归属（编辑-重打包周期的关键规则）
 
-用户解包 → 编辑 → 重打包时，`mde pack` MUST 按下表处理：
+用户解包 → 编辑 → 重打包时，`mdpkg pack` MUST 按下表处理：
 
 | 字段 | 归属 | 重打包行为 |
 |---|---|---|
@@ -159,10 +159,10 @@ example.mde
 
 1. 路径 MUST NOT 以 `/` 开头，MUST NOT 含 `.` 或 `..` 段，MUST NOT 含空段（`//`），MUST NOT 含 U+0000，MUST NOT 含 Windows 盘符或保留设备名。
 2. 路径与文件名在入库前 MUST 统一 **Unicode NFC** 归一化。
-3. 归一化后相同的两个路径（含仅大小写不同者）MUST 在打包阶段被拒绝（错误码 `MDE-E201`）。
+3. 归一化后相同的两个路径（含仅大小写不同者）MUST 在打包阶段被拒绝（错误码 `MDPKG-E201`）。
    - 理由：macOS(APFS, NFD) 与 Linux(NFC) 下同一逻辑文件名字节不同，不归一化会导致 manifest 的 SHA-256 跨平台失配、`validate` 全量误报。
 4. 路径长度 MUST NOT 超过 1024 字节（UTF-8）。
-5. 实现 MUST 拒绝符号链接与硬链接条目（`MDE-E601`）。
+5. 实现 MUST 拒绝符号链接与硬链接条目（`MDPKG-E601`）。
 
 ---
 
@@ -176,24 +176,24 @@ example.mde
 ![产品截图](assets/images/product.png)
 ```
 
-实现 MUST NOT 要求或生成 `mde://` 协议。理由：解压/导出后必须仍是标准 Markdown，`mde://` 会破坏降级路径。
+实现 MUST NOT 要求或生成 `mdpkg://` 协议。理由：解压/导出后必须仍是标准 Markdown，`mdpkg://` 会破坏降级路径。
 
 外部 URL（`http://`、`https://`、协议相对 `//`）默认**保留为外链**，不下载。
 
-### 6.2 `mde pack` 行为
+### 6.2 `mdpkg pack` 行为
 
 ```
-mde pack <dir> [-o out.mde] [--entry <path>] [--referenced-only] [--fetch] [--preserve-mtime]
+mdpkg pack <dir> [-o out.mdpkg] [--entry <path>] [--referenced-only] [--fetch] [--preserve-mtime]
 ```
 
-1. 入口：`--entry` 指定；否则 `dir/document.md`；否则若 `dir/manifest.json` 存在则继承其 `entrypoint`。三者皆无 → `MDE-E301`。
+1. 入口：`--entry` 指定；否则 `dir/document.md`；否则若 `dir/manifest.json` 存在则继承其 `entrypoint`。三者皆无 → `MDPKG-E301`。
 2. **默认行为：打包 `dir` 内全部文件**（排除输出文件自身）。
    - 理由：全量打包的代码量比「精准扫描」少一个数量级，且不会漏图；孤儿资源只是体积代价，缺图是正确性缺陷，两者风险不对称。
 3. `--referenced-only`：仅打包引用闭包（入口 + include 传递展开后可达的全部本地引用）+ 入口 + `manifest.json`。
-4. **引用校验（两种模式下都执行）**：从入口出发遍历 include 闭包，收集全部本地引用。任何被引用的本地文件不存在于待打包集合 → **报错退出**（`MDE-E401`），不静默跳过。
+4. **引用校验（两种模式下都执行）**：从入口出发遍历 include 闭包，收集全部本地引用。任何被引用的本地文件不存在于待打包集合 → **报错退出**（`MDPKG-E401`），不静默跳过。
    - **什么算「引用」**：图片与嵌入附件（pdf / zip 等）是必须随包的资源；**到本地 Markdown 的链接属于文档间导航，不算附件，不强制打包**——否则打包一篇 README 会连带要求整个仓库。
-   - **收集必须基于 Markdown AST，不得用正则扫全文**：文档中常出现含 Markdown 语法的**示例代码块**（如教程里的 `![图](assets/a.png)`），正则会把示例当作真实引用并误报 `MDE-E401`。用 AST 时只有 `image` / `link` 节点的 URL 算引用，代码块与行内代码天然被排除——这与符号扩展共用同一套「排除区」判断。
-   - 实测（dogfood）：打包项目自身 README 时，正则实现两次误报（先报示例里的 `assets/a.png`，再报真实链接 `spec/mde-format-spec.md`），改 AST 后一次通过。
+   - **收集必须基于 Markdown AST，不得用正则扫全文**：文档中常出现含 Markdown 语法的**示例代码块**（如教程里的 `![图](assets/a.png)`），正则会把示例当作真实引用并误报 `MDPKG-E401`。用 AST 时只有 `image` / `link` 节点的 URL 算引用，代码块与行内代码天然被排除——这与符号扩展共用同一套「排除区」判断。
+   - 实测（dogfood）：打包项目自身 README 时，正则实现两次误报（先报示例里的 `assets/a.png`，再报真实链接 `spec/mdpkg-format-spec.md`），改 AST 后一次通过。
    - 这一步 MUST 走 include 传递闭包；只扫入口文档会漏掉被包含子文档里的图片，直接违反 P0「附件不丢失」。
 5. **孤儿资源**（在包内但未被任何文档引用）→ warning，不报错。
 6. `--fetch`：显式下载外链并改写为包内相对路径，在 `resources[].source_url` 记录来源。默认关闭。
@@ -252,9 +252,9 @@ mde pack <dir> [-o out.mde] [--entry <path>] [--referenced-only] [--fetch] [--pr
 > 规范**不**要求感知代码块上下文。理由：正确判断代码块需要预处理器自行实现围栏扫描（`` ``` ``/`~~~`/不等长围栏/4 空格缩进/列表内嵌套），这在「解析前展开」的阶段是不可能的，且必然导致实现分叉。
 > **已知局限：** 列 0 的围栏代码块内若出现符合上式的行，会被展开。此为已知且可接受行为，规范不修复。缩进 ≥1 空格或写在代码块内容中的指令天然不触发。
 
-**路径解析：** 路径相对**包根**解析，MUST 规范化后位于包根内。MUST NOT 访问包外文件、URL、其他 `.mde` 包（`MDE-E501` / `MDE-E502`）。
+**路径解析：** 路径相对**包根**解析，MUST 规范化后位于包根内。MUST NOT 访问包外文件、URL、其他 `.mdpkg` 包（`MDPKG-E501` / `MDPKG-E502`）。
 
-**目标类型：** 仅包内 Markdown 文件。非 Markdown 目标 → `MDE-E503`。
+**目标类型：** 仅包内 Markdown 文件。非 Markdown 目标 → `MDPKG-E503`。
 
 **相对基准与 URL 重写（MUST，消除实现分叉的关键规则）：**
 被包含文件 `P`（包内路径）中的**相对**图片/资源引用 `R`，在展开时 MUST 以纯文本方式重写为 `normalize(dirname(P) + "/" + R)`。
@@ -271,11 +271,11 @@ mde pack <dir> [-o out.mde] [--entry <path>] [--referenced-only] [--fetch] [--pr
 
 | 限制 | 默认值 | 错误码 |
 |---|---|---|
-| 最大深度 | 32 | `MDE-E504` |
-| 单文档展开后总字节 | 10 MB | `MDE-E505` |
-| 单包内 include 指令总次数 | 1000 | `MDE-E506` |
+| 最大深度 | 32 | `MDPKG-E504` |
+| 单文档展开后总字节 | 10 MB | `MDPKG-E505` |
+| 单包内 include 指令总次数 | 1000 | `MDPKG-E506` |
 
-**循环检测（MUST）：** 维护展开栈，同一文件在栈中重复出现即报 `MDE-E507`。
+**循环检测（MUST）：** 维护展开栈，同一文件在栈中重复出现即报 `MDPKG-E507`。
 
 **错误定位（SHOULD）：** 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。
 
@@ -318,10 +318,10 @@ mde pack <dir> [-o out.mde] [--entry <path>] [--referenced-only] [--fetch] [--pr
 
 | 限制 | 默认值 | 错误码 |
 |---|---|---|
-| 资源总数 | 10 000 | `MDE-E602` |
-| 单文件解压后字节 | 200 MB | `MDE-E603` |
-| 总解压字节 | 1 GB | `MDE-E604` |
-| 单条目压缩比 | 1000:1 | `MDE-E605` |
+| 资源总数 | 10 000 | `MDPKG-E602` |
+| 单文件解压后字节 | 200 MB | `MDPKG-E603` |
+| 总解压字节 | 1 GB | `MDPKG-E604` |
+| 单条目压缩比 | 1000:1 | `MDPKG-E605` |
 
 检测 MUST 在解压**过程中**流式计数，不得先完整解压再统计（否则 ZIP 炸弹防护失效）。判定只需读条目的 central directory header，**达到上限即不启动该条目的解压流**——实测 120 MB 炸弹（120 KB 压缩包）只读 header 拒绝耗时 0 ms，完整解压需 156 ms，且未落盘。
 
@@ -329,29 +329,29 @@ mde pack <dir> [-o out.mde] [--entry <path>] [--referenced-only] [--fetch] [--pr
 
 ### 8.5 版本协商
 
-- 主版本不同 → MUST 拒绝处理并报错（`MDE-E701`）。
+- 主版本不同 → MUST 拒绝处理并报错（`MDPKG-E701`）。
 - 次版本更高 → 处理已知的 v1 字段，忽略未知字段（`MUST NOT` 因未知字段报错）。
-- `extensions_required` 中存在实现不支持的项 → MUST 报错退出（`MDE-E702`），**不得**静默降级。
+- `extensions_required` 中存在实现不支持的项 → MUST 报错退出（`MDPKG-E702`），**不得**静默降级。
 
 ### 8.6 命令契约
 
 | 命令 | 说明 |
 |---|---|
-| `mde pack <dir> -o out.mde` | §6.2 |
-| `mde unpack <pkg> -o dir` | 还原为目录；强制 §8.4 上限 |
-| `mde list <pkg>` | 列出 `resources[]`（path / media_type / size） |
-| `mde validate <pkg>` | Schema + size + sha256 + 路径规则 + 限制项；统计外链数并提示「本包含 N 个外部引用，不可完全离线」 |
-| `mde render <pkg>` | 见 §8.7 |
-| `mde export --raw <pkg> -o dir` | 输出**目录**，保持包内结构，文本一字不改 |
-| `mde export --expanded <pkg> -o dir` | 输出**目录**，含一份展开后的 Markdown（include 已展开、相对 URL 已按 §7.2 重写）+ 全部资源 |
-| `mde diff <a> <b>` | 双方解包到临时目录后 `diff -ruN` |
+| `mdpkg pack <dir> -o out.mdpkg` | §6.2 |
+| `mdpkg unpack <pkg> -o dir` | 还原为目录；强制 §8.4 上限 |
+| `mdpkg list <pkg>` | 列出 `resources[]`（path / media_type / size） |
+| `mdpkg validate <pkg>` | Schema + size + sha256 + 路径规则 + 限制项；统计外链数并提示「本包含 N 个外部引用，不可完全离线」 |
+| `mdpkg render <pkg>` | 见 §8.7 |
+| `mdpkg export --raw <pkg> -o dir` | 输出**目录**，保持包内结构，文本一字不改 |
+| `mdpkg export --expanded <pkg> -o dir` | 输出**目录**，含一份展开后的 Markdown（include 已展开、相对 URL 已按 §7.2 重写）+ 全部资源 |
+| `mdpkg diff <a> <b>` | 双方解包到临时目录后 `diff -ruN` |
 
 > `--raw` MUST 输出目录而非单文件：未展开的文档其 include 指令与相对路径在其他层级下无意义，输出成单文件必然损坏。`--expanded` 的产出可被任何标准 Markdown 工具打开。
 
-### 8.7 `mde render` 输出形态
+### 8.7 `mdpkg render` 输出形态
 
 ```
-mde render <pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
+mdpkg render <pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
 ```
 
 - **默认 `--inline`**：资源以 data URI 内联，产出**单个自包含 HTML 文件**，对应「AI 生成文档交付」定位。
@@ -365,11 +365,11 @@ mde render <pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
 
 | 层 | 承诺 |
 |---|---|
-| 容器兼容 | `.mde` 是标准 ZIP，`unzip -l` / `unzip -p` 可列可提 |
+| 容器兼容 | `.mdpkg` 是标准 ZIP，`unzip -l` / `unzip -p` 可列可提 |
 | 文档兼容 | 包内 Markdown 是标准 Markdown + 相对路径；符号保持源文本；`<<<` 降级为可见文本 |
 | 导出兼容 | `export --raw` / `--expanded` 的产出可被任何标准 Markdown 工具打开 |
 
-**不承诺：** 普通文本编辑器直接打开 `.mde` 即获得完整渲染。
+**不承诺：** 普通文本编辑器直接打开 `.mdpkg` 即获得完整渲染。
 
 ---
 
@@ -378,43 +378,43 @@ mde render <pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
 | 码 | 含义 | 触发 |
 |---|---|---|
 | **1xx 容器** ||| 
-| `MDE-E101` | 不是有效 ZIP | 打开阶段 |
-| `MDE-E102` | 缺少 `manifest.json` | 识别阶段 |
-| `MDE-E103` | 识别失败，按普通 ZIP 处理 | 非错误，仅提示 |
+| `MDPKG-E101` | 不是有效 ZIP | 打开阶段 |
+| `MDPKG-E102` | 缺少 `manifest.json` | 识别阶段 |
+| `MDPKG-E103` | 识别失败，按普通 ZIP 处理 | 非错误，仅提示 |
 | **2xx 路径/编码** ||| 
-| `MDE-E201` | 路径冲突（归一化或大小写后重复） | pack |
-| `MDE-E202` | 非法路径（`..` / 绝对 / 空段 / NUL / 盘符） | pack / unpack |
-| `MDE-E203` | 非 UTF-8 文本或含 BOM | pack |
-| `MDE-E204` | 路径超长（> 1024 字节） | pack |
+| `MDPKG-E201` | 路径冲突（归一化或大小写后重复） | pack |
+| `MDPKG-E202` | 非法路径（`..` / 绝对 / 空段 / NUL / 盘符） | pack / unpack |
+| `MDPKG-E203` | 非 UTF-8 文本或含 BOM | pack |
+| `MDPKG-E204` | 路径超长（> 1024 字节） | pack |
 | **3xx manifest** ||| 
-| `MDE-E301` | 无法确定入口文档 | pack |
-| `MDE-E302` | manifest 不符合 Schema | validate |
-| `MDE-E303` | `entrypoint` 指向不存在或非 Markdown | validate |
-| `MDE-E304` | `resources` 未覆盖包内全部文件 | validate |
+| `MDPKG-E301` | 无法确定入口文档 | pack |
+| `MDPKG-E302` | manifest 不符合 Schema | validate |
+| `MDPKG-E303` | `entrypoint` 指向不存在或非 Markdown | validate |
+| `MDPKG-E304` | `resources` 未覆盖包内全部文件 | validate |
 | **4xx 资源** ||| 
-| `MDE-E401` | 引用的本地资源缺失 | pack |
-| `MDE-E402` | 资源 size 不符 | validate |
-| `MDE-E403` | 资源 sha256 不符（**完整性问题，非篡改证据**） | validate |
-| `MDE-E404` | 孤儿资源（warning，非错误） | pack |
+| `MDPKG-E401` | 引用的本地资源缺失 | pack |
+| `MDPKG-E402` | 资源 size 不符 | validate |
+| `MDPKG-E403` | 资源 sha256 不符（**完整性问题，非篡改证据**） | validate |
+| `MDPKG-E404` | 孤儿资源（warning，非错误） | pack |
 | **5xx include** ||| 
-| `MDE-E501` | include 目标在包外 | render / export |
-| `MDE-E502` | include 目标是 URL 或外部包 | render / export |
-| `MDE-E503` | include 目标非 Markdown | render / export |
-| `MDE-E504` | 深度超限（默认 32） | render / export |
-| `MDE-E505` | 展开后字节超限（默认 10 MB） | render / export |
-| `MDE-E506` | include 次数超限（默认 1000） | render / export |
-| `MDE-E507` | 检测到循环包含 | render / export |
-| `MDE-E508` | include 目标不存在 | render / export |
+| `MDPKG-E501` | include 目标在包外 | render / export |
+| `MDPKG-E502` | include 目标是 URL 或外部包 | render / export |
+| `MDPKG-E503` | include 目标非 Markdown | render / export |
+| `MDPKG-E504` | 深度超限（默认 32） | render / export |
+| `MDPKG-E505` | 展开后字节超限（默认 10 MB） | render / export |
+| `MDPKG-E506` | include 次数超限（默认 1000） | render / export |
+| `MDPKG-E507` | 检测到循环包含 | render / export |
+| `MDPKG-E508` | include 目标不存在 | render / export |
 | **6xx 安全/限制** ||| 
-| `MDE-E601` | 符号链接 / 硬链接条目 | pack / unpack |
-| `MDE-E602` | 资源总数超限 | unpack |
-| `MDE-E603` | 单文件解压字节超限 | unpack |
-| `MDE-E604` | 总解压字节超限 | unpack |
-| `MDE-E605` | 压缩比异常（疑似 ZIP 炸弹） | unpack |
+| `MDPKG-E601` | 符号链接 / 硬链接条目 | pack / unpack |
+| `MDPKG-E602` | 资源总数超限 | unpack |
+| `MDPKG-E603` | 单文件解压字节超限 | unpack |
+| `MDPKG-E604` | 总解压字节超限 | unpack |
+| `MDPKG-E605` | 压缩比异常（疑似 ZIP 炸弹） | unpack |
 | **7xx 扩展/版本** ||| 
-| `MDE-E701` | spec_version 主版本不支持 | 任何读操作 |
-| `MDE-E702` | `extensions_required` 含不支持项 | render |
-| `MDE-E703` | 未知扩展字段（warning，忽略） | validate |
+| `MDPKG-E701` | spec_version 主版本不支持 | 任何读操作 |
+| `MDPKG-E702` | `extensions_required` 含不支持项 | render |
+| `MDPKG-E703` | 未知扩展字段（warning，忽略） | validate |
 
 退出码：`0` 成功；`1` 校验/业务错误（伴随上表错误码）；`2` 用法错误；`3` 内部错误。
 
@@ -431,7 +431,7 @@ mde render <pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
 ```text
 spec/fixtures/<case-id>/
 ├── case.json        # 用例定义
-├── input/           # 输入目录，或 input.mde
+├── input/           # 输入目录，或 input.mdpkg
 └── expected/        # 期望产出（manifest / html / 解包树）
 ```
 
@@ -442,7 +442,7 @@ spec/fixtures/<case-id>/
   "id": "pack-basic",
   "title": "最小包：1 图片 + 1 级 include + core 符号",
   "kind": "pack",
-  "args": ["pack", "input/", "-o", "out.mde"],
+  "args": ["pack", "input/", "-o", "out.mdpkg"],
   "expect": {
     "exitCode": 0,
     "errorCode": null,
@@ -466,7 +466,7 @@ spec/fixtures/<case-id>/
 
 ### B.3 用例清单（Phase 0B 目标 ≥ 30）
 
-> **落地状态（2026-08-30）：已实现 43 个用例**（下方目标清单已全覆盖），位于 `spec/fixtures/<id>/`，由 `packages/mde/test/fixtures.test.ts` 驱动，全部通过（**全量 79/79**，含 36 个实现单测）。
+> **落地状态（2026-08-30）：已实现 43 个用例**（下方目标清单已全覆盖），位于 `spec/fixtures/<id>/`，由 `packages/mdpkg/test/fixtures.test.ts` 驱动，全部通过（**全量 79/79**，含 36 个实现单测）。
 >
 > 实际 `case.json` 字段（与 B.2 的差异：断言内联，只有大产物才放 `expected/` 目录）：
 > `id` / `title` / `kind`（`pack`\|`validate`\|`render`\|`expand`\|`path`）/ `input`（默认 `input/`）/ `entry` / `args`（传给 `render`）/ `tamper`（篡改 manifest 以测完整性：`{ resource, sha256, size }`）/ `expect`（`errorCode`\|`tree`\|`manifest`\|`htmlContains`\|`htmlNotContains`\|`textContains`\|`pathInput`）。
@@ -506,7 +506,7 @@ spec/fixtures/<case-id>/
 21. `sec-zip-bomb-ratio` / `sec-total-size-limit` / `sec-entry-count-limit`
 22. `sec-malicious-svg` — SVG 不进 DOM
 23. `sec-html-injection` — 内联 HTML 被消毒
-24. `sec-sha-mismatch` — 摘要不符报 `MDE-E403` 且提示不含「篡改」
+24. `sec-sha-mismatch` — 摘要不符报 `MDPKG-E403` 且提示不含「篡改」
 25. `sec-external-url` — 外链保留 + `referrerpolicy`
 
 **路径/编码（3）**
@@ -515,8 +515,8 @@ spec/fixtures/<case-id>/
 28. `encoding-non-utf8` — 非 UTF-8 被拒
 
 **版本/扩展（3）**
-29. `version-major-mismatch` — 报 `MDE-E701`
-30. `ext-required-unsupported` — 报 `MDE-E702`，不静默降级
+29. `version-major-mismatch` — 报 `MDPKG-E701`
+30. `ext-required-unsupported` — 报 `MDPKG-E702`，不静默降级
 31. `ext-unknown-ignored` — 未知字段忽略并 warning
 
 **互操作（2）**
@@ -530,13 +530,13 @@ spec/fixtures/<case-id>/
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://mde.spec/schema/manifest-1.0.json",
-  "title": "MDE manifest v1.0",
+  "$id": "https://mdpkg.spec/schema/manifest-1.0.json",
+  "title": "mdpkg manifest v1.0",
   "type": "object",
-  "required": ["mde", "spec_version", "resources"],
+  "required": ["format", "spec_version", "resources"],
   "additionalProperties": false,
   "properties": {
-    "mde": { "const": "mde" },
+    "format": { "const": "mdpkg" },
     "spec_version": { "type": "string", "pattern": "^1\\.\\d+$" },
     "entrypoint": { "type": "string", "minLength": 1, "maxLength": 1024 },
     "encoding": { "const": "utf-8" },

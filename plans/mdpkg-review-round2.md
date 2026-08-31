@@ -1,4 +1,4 @@
-# MDE v1 实现规划设计方案
+# mdpkg v1 实现规划设计方案
 
 ## Context
 
@@ -9,7 +9,7 @@
 
 **相关产物状态：**
 - `PLAN_MERGED.md` — 立场来源。已被本轮审查修订 16 处（B1–B3 / H1–H5 / M1–M7）。注意：该文件 **git 未跟踪**（不在 `git ls-files` 中），无基线可回滚，回退需手工。
-- `spec/mde-format-spec.md` — 规范初稿（保留）。本方案把它当作**实施输入**，其附录 A（错误码）/ B（fixtures）/ C（Schema）直接作为交付物清单。
+- `spec/mdpkg-format-spec.md` — 规范初稿（保留）。本方案把它当作**实施输入**，其附录 A（错误码）/ B（fixtures）/ C（Schema）直接作为交付物清单。
 
 ---
 
@@ -22,7 +22,7 @@
 | 需求 | 机制 | 判定 | 缺口与处置 |
 |---|---|---|---|
 | P0 图片随包 | 包内相对路径 + 打包 | ✅ 满足 | 需 include 闭包校验，否则被包含文档的图会漏 |
-| P0 单文件传输 | 标准 ZIP | ✅ 满足 | 编辑器不能直接打开 `.mde`（已知取舍，用 `unpack`/`export` 兜底） |
+| P0 单文件传输 | 标准 ZIP | ✅ 满足 | 编辑器不能直接打开 `.mdpkg`（已知取舍，用 `unpack`/`export` 兜底） |
 | P1 符号扩展 | 渲染期 text 节点替换 | ✅ 满足 | 误伤风险；靠词边界 + 排除区控制，非阻断 |
 | P2 文件包含 | 解析前文本展开 | ⚠️ 有条件 | 展开期无 Markdown 语义（代码块、相对基准）→ 已定两条规则化解（§2.3） |
 | 可重复构建 | 固定 mtime/顺序/权限 | ✅ 满足 | 代价：放弃真实 mtime |
@@ -40,7 +40,7 @@
 |---|---|---|---|---|
 | **S1** | `fflate` 能精确控制条目顺序与 mtime → 可重复构建 | 同目录打包两次，比对字节 | 两次产物 `sha256` 相同，且 `unzip -l` 时间列全为 `1980-01-01` | 改用 `yazl`；仍不行则「可重复构建」降级为「稳定 manifest 内容」，放弃字节一致 |
 | **S2** | remark 的 `text` 节点能满足符号全部排除区 | 构造含 code / inlineCode / link URL / HTML 属性 / 转义的样例，visit 替换后检查 | 5 处全部不被替换，普通文本正常替换 | 改用 micromark 扩展（成本高 3–5 倍，会推迟 M4） |
-| **S3** | 流式解压可中途计数并中断 → ZIP 炸弹防护 | 喂一个压缩比 10000:1 的文件 | 在解压出 1 GB 前抛 `MDE-E605`，内存不爆 | 改为「解压前静态检查压缩比」+ 依赖文件系统配额，安全性下降 |
+| **S3** | 流式解压可中途计数并中断 → ZIP 炸弹防护 | 喂一个压缩比 10000:1 的文件 | 在解压出 1 GB 前抛 `MDPKG-E605`，内存不爆 | 改为「解压前静态检查压缩比」+ 依赖文件系统配额，安全性下降 |
 | **S4** | 中文/Unicode 文件名跨 macOS(NFD) / Linux(NFC) 一致 | 在 macOS 建含中文名文件的目录打包，`validate` 到另一平台 | SHA-256 与路径全部匹配 | 强制 NFC 重命名为入库名（会改动用户文件名，需提示） |
 
 **这四条是「可行性」的唯一实证来源。不跑完不进 M1。** 每一条失败都有备选，不会让方案归零，但会改变成本。
@@ -68,13 +68,13 @@
 技术上可行 ≠ 值得做。诚实的评估：
 
 - **冷启动死结：** 格式的价值随使用者数量增长。没有第二个实现者的「标准」只是「某人项目的文件格式」。
-- **竞争者已占位：** Obsidian（vault + 附件管理）、Quarto（学术出版打包）、Typora（编辑体验）、PyMdown（符号与 Base64）。MDE 在**每一个单点上都不是最优**。
+- **竞争者已占位：** Obsidian（vault + 附件管理）、Quarto（学术出版打包）、Typora（编辑体验）、PyMdown（符号与 Base64）。mdpkg 在**每一个单点上都不是最优**。
 - **唯一窄切口：** 「AI 生成文档 / 知识库导出**的收件格式**」——这是个具体、高频、目前无人占位的场景：LLM 产出一篇带图的长文，接收方要的是一个能存档、能校验、能离线打开的单文件。
 
 **建议路径：先自用，后标准化。**
-1. 第一阶段把 MDE 当**内部工具**用：自己写文档、自己交付、自己踩坑 1 个月。
+1. 第一阶段把 mdpkg 当**内部工具**用：自己写文档、自己交付、自己踩坑 1 个月。
 2. 只有在真实使用中确认「它确实比『zip 一个目录』更省事」之后，才投入第二阶段（规范发布、VS Code 插件、第二实现）。
-3. **止损判据（现在就写下）：** 自用 3 个月后若没有出现第二个使用者或第二个实现者，则停止标准化企图，MDE 降级为内部工具，不再投入规范治理成本。
+3. **止损判据（现在就写下）：** 自用 3 个月后若没有出现第二个使用者或第二个实现者，则停止标准化企图，mdpkg 降级为内部工具，不再投入规范治理成本。
 
 > 这一条是本方案最重要的建议：**不要在验证价值之前投入规范治理**。本仓库已经消耗了 4 份规划文档 + 2 轮审查在「设计」上，而产出仍是 0 行可执行代码——正是这个风险的现实证据。
 
@@ -98,7 +98,7 @@
 不建 monorepo——v1 只有一个可执行产物，多包只增加构建复杂度。
 
 ```
-packages/mde/
+packages/mdpkg/
 ├── src/
 │   ├── container.ts   # ZIP 读写 · 路径安全 · 可重复构建 · 流式上限
 │   ├── manifest.ts    # 生成 · Schema 校验 · 哈希 · 字段归属 · 闭包校验
@@ -123,7 +123,7 @@ packages/mde/
 
 **render（读路径）**
 ```
-.mde → 流式解包（路径校验 + 计数上限） → manifest Schema + 哈希校验
+.mdpkg → 流式解包（路径校验 + 计数上限） → manifest Schema + 哈希校验
      → include 展开（列0触发 · URL 重写 · 深度/大小/循环限制）
      → remark-parse → visit(text) 符号替换 → remark-rehype
      → rehype-sanitize → stringify → data URI 内联或 --dir
@@ -177,10 +177,10 @@ zip(files, {
 const unzip = new Unzip();
 unzip.register(UnzipFileStream, async (f) => {
   totalBytes += f.size;
-  if (++count > MAX_ENTRIES) throw new MdeError('MDE-E602');
-  if (f.size > MAX_FILE)    throw new MdeError('MDE-E603');
-  if (totalBytes > MAX_TOTAL) throw new MdeError('MDE-E604');
-  if (f.size / f.compressedSize > MAX_RATIO) throw new MdeError('MDE-E605');
+  if (++count > MAX_ENTRIES) throw new MdeError('MDPKG-E602');
+  if (f.size > MAX_FILE)    throw new MdeError('MDPKG-E603');
+  if (totalBytes > MAX_TOTAL) throw new MdeError('MDPKG-E604');
+  if (f.size / f.compressedSize > MAX_RATIO) throw new MdeError('MDPKG-E605');
   // 通过后才落盘
 });
 ```
@@ -197,13 +197,13 @@ unzip.register(UnzipFileStream, async (f) => {
 | **M4 扩展** | `symbols` + `include` | ✅ **已完成**（见 §2.4.5）：core 符号在 M3 完成；include 展开 / URL 重写 / 循环检测 / 四类目标异常 / 三项限制全部就位 |
 | **M5 一致性** | `spec/fixtures/` ≥ 33 case + `node:test` | ✅ **已完成**（见 §2.4.6）：40 个 case 全绿；`pack` 类自动附加可重复性断言 |
 | **M6 规范对齐** | Schema 落盘 + 错误码落地 + 最小示例包 | ✅ **已完成**（见 §2.4.7）：补齐 5 处「规范承诺但实现缺失」，全量 76/76 |
-| **M7（可选）** | VS Code 插件 + `mde diff` | 仅当 M1–M6 完成**且**自用验证通过后才启动 |
+| **M7（可选）** | VS Code 插件 + `mdpkg diff` | 仅当 M1–M6 完成**且**自用验证通过后才启动 |
 
 **M7 是有意延后项**——在「采用可行性」被验证前，编辑器插件是投机投入。
 
 ### 2.4.1 M0 探针结果（已完成，2026-08-30）
 
-探针代码在 `/tmp/mde-spike/`（验证性代码，不入库）。
+探针代码在 `/tmp/mdpkg-spike/`（验证性代码，不入库）。
 
 | # | 假设 | 结果 | 证据 |
 |---|---|---|---|
@@ -221,21 +221,21 @@ unzip.register(UnzipFileStream, async (f) => {
 
 ### 2.4.3 M2 结果（已完成，2026-08-30）
 
-产物：`packages/mde/src/manifest.ts` + `spec/schema/manifest-1.0.json` + `test/manifest.test.ts`；CLI 增 `validate`。**测试 16/16 通过**（container 9 + manifest 7）。
+产物：`packages/mdpkg/src/manifest.ts` + `spec/schema/manifest-1.0.json` + `test/manifest.test.ts`；CLI 增 `validate`。**测试 16/16 通过**（container 9 + manifest 7）。
 
-覆盖：manifest 覆盖包内全部文件（含入口自身）且按 path 升序、`media_type` 推断、**字段归属表**（`spec_version` 不继承 / `entrypoint`/`extensions`/`extensions_required` 保留 / `resources` 重算 / `source_url` 继承）、引用闭包（缺图报 `MDE-E401`、孤儿仅告警）、外链统计、Schema/覆盖性/size/sha256 校验。
+覆盖：manifest 覆盖包内全部文件（含入口自身）且按 path 升序、`media_type` 推断、**字段归属表**（`spec_version` 不继承 / `entrypoint`/`extensions`/`extensions_required` 保留 / `resources` 重算 / `source_url` 继承）、引用闭包（缺图报 `MDPKG-E401`、孤儿仅告警）、外链统计、Schema/覆盖性/size/sha256 校验。
 
 **端到端：**
 ```
-pack:     3 条目（入口 document.md）→ ok.mde (30698 B)
+pack:     3 条目（入口 document.md）→ ok.mdpkg (30698 B)
 validate: OK（0 条告警）；提示「本包含 1 个外部引用，不可完全离线」
 manifest: resources 含 assets/images/shot.png(30000, sha256 3584597…) 与 document.md(82, sha256 ecb9f46…)
-负向:     引用缺失图片 → [MDE-E401] …，退出码 1
+负向:     引用缺失图片 → [MDPKG-E401] …，退出码 1
 ```
 
 ### 2.4.4 M3 结果（已完成，2026-08-30）
 
-产物：`packages/mde/src/symbols.ts`（core 映射 + 词边界 + 哨兵法）、`packages/mde/src/render.ts`（管线 + 消毒 + 内联 + 阈值）、`test/render.test.ts`；CLI 增 `render`。**测试 25/25 通过**（container 9 + manifest 7 + render 9）。
+产物：`packages/mdpkg/src/symbols.ts`（core 映射 + 词边界 + 哨兵法）、`packages/mdpkg/src/render.ts`（管线 + 消毒 + 内联 + 阈值）、`test/render.test.ts`；CLI 增 `render`。**测试 25/25 通过**（container 9 + manifest 7 + render 9）。
 
 依赖新增：`unified remark-parse remark-rehype rehype-sanitize rehype-stringify unist-util-visit`。
 
@@ -243,8 +243,8 @@ manifest: resources 含 assets/images/shot.png(30000, sha256 3584597…) 与 doc
 
 **端到端（含图片 + 外链 + 符号 + 代码块 + script 注入）：**
 ```
-pack → validate OK → render: /tmp/mde-m3/out.html（inline 模式，自包含单文件，53942 B）
-<h1>MDE 渲染验证 ™</h1>                                  ← 转换
+pack → validate OK → render: /tmp/mdpkg-m3/out.html（inline 模式，自包含单文件，53942 B）
+<h1>mdpkg 渲染验证 ™</h1>                                  ← 转换
 <p>普通文本 → 应该变成箭头，转义 (tm) 保留字面。</p>       ← 哨兵转义生效
 <p>行内 <code>(tm)</code> 不转换；a&#x3C;=b 不转换。</p>   ← 排除区 + 词边界
 img src="data:image/png;base64,…"                        ← 包内图片已内联
@@ -256,29 +256,29 @@ img src="https://example.com/remote.png"（+referrerpolicy）← 外链保留、
 
 ### 2.4.5 M4 结果（已完成，2026-08-30）
 
-产物：`packages/mde/src/include.ts`、`test/include.test.ts`（9 测试）。**测试 35/35 通过**（container 9 + manifest 8 + render 9 + include 9）。至此 v1 三项能力（资源随包 / 符号扩展 / 文件包含）全部实现。
+产物：`packages/mdpkg/src/include.ts`、`test/include.test.ts`（9 测试）。**测试 35/35 通过**（container 9 + manifest 8 + render 9 + include 9）。至此 v1 三项能力（资源随包 / 符号扩展 / 文件包含）全部实现。
 
 实现要点：列 0 且整行匹配 `INCLUDE_RE = /^<<<\s*(.+?)\s*$/` 才触发；`rewriteLine()` 把被包含文件 P 中相对引用 R 重写为 `normalize(dirname(P) + '/' + R)`（外链 / 锚点 / 绝对路径不动）；`sources[]` 记录展开后行号 → (源文件, 原行号) 的 sourcemap；`INCLUDE_LIMITS = { depth: 32, maxBytes: 10MB, maxCount: 1000 }`。
 
 **三个缺陷（本轮发现并修复）：**
-1. **`errors.ts` 完全没有 5xx 段**——M2 只写了 4xx，导致 include.ts 里 `E.E501`…`E.E507` 全为 `undefined`。已补齐 E501–E508，并给规范附录 A 新增 `MDE-E508`（include 目标不存在，原表缺失此码）。
+1. **`errors.ts` 完全没有 5xx 段**——M2 只写了 4xx，导致 include.ts 里 `E.E501`…`E.E507` 全为 `undefined`。已补齐 E501–E508，并给规范附录 A 新增 `MDPKG-E508`（include 目标不存在，原表缺失此码）。
 2. **`<<<` 会被 HTML 解析 + 消毒吃掉**（真实降级缺陷）：`include=false` 或缩进的指令行，行首 `<<<` 被 remark 当作 HTML 标签、再被 `rehype-sanitize` 清除，**原文凭空消失**，违反规范 §9「`<<<` 降级为可见文本」。修复：展开后对未展开的指令做 `expanded.replace(/^(\s*)<<</gm, '$1&lt;&lt;&lt;')`。
 3. **H1 未真正修复**：`checkClosure` 只扫入口文档，会漏掉被包含文档里的图片。已改为先 `expand()` 再收集引用，并把 `sources` 里的文件排除出孤儿集合。新增回归测试（缺 `includes/img/fig.png` 应报 E401，补上重写后的路径即通过）。
 
 **端到端（多级 include + 嵌套图片）：**
 ```
-pack:     5 条目 → doc.mde (7061 B)
+pack:     5 条目 → doc.mdpkg (7061 B)
 validate: OK（0 条告警，被包含文件正确识别为非孤儿）
 render:   <h1>主文档 ™ / <h2>第一章 © / <h3>第二章 → 结尾
           嵌套图 includes/img/fig.png 重写后成功内联为 data URI
-负向:     [MDE-E507] 检测到循环包含: document.md → b.md → document.md，退出码 1
+负向:     [MDPKG-E507] 检测到循环包含: document.md → b.md → document.md，退出码 1
 ```
 
 **测试踩坑（与 M3 同源）**：rehype-stringify 用数字实体 `&#x3C;` 而非 `&lt;`，断言要写成 `/(&#x3C;|&lt;){3}/` 兼容两种形式。另：sourcemap 索引要算上被包含文件末尾的空行（split 产生的空串也占一行）。
 
 ### 2.4.6 M5 结果（已完成，2026-08-30）
 
-产物：`spec/fixtures/`（**43 个**用例目录）、`packages/mde/test/fixtures.test.ts`（驱动，约 190 行）。**全量 79/79 通过**（36 个实现单测 + 43 个 fixture）。M6 补上 `export-raw` / `export-expanded`（40→42），收尾再补 `unpack-roundtrip`（→43），规范清单自此全覆盖。
+产物：`spec/fixtures/`（**43 个**用例目录）、`packages/mdpkg/test/fixtures.test.ts`（驱动，约 190 行）。**全量 79/79 通过**（36 个实现单测 + 43 个 fixture）。M6 补上 `export-raw` / `export-expanded`（40→42），收尾再补 `unpack-roundtrip`（→43），规范清单自此全覆盖。
 
 驱动设计：用例数据与实现无关地放在 `case.json`，`kind` 分派到 `pack` / `validate` / `render` / `expand` / `path` 五条通道；`pack` 类自动附加「两次打包字节相同」断言；支持 `tamper` 篡改 manifest 以覆盖完整性校验（E402/E403）。
 
@@ -303,7 +303,7 @@ render:   <h1>主文档 ™ / <h2>第一章 © / <h3>第二章 → 结尾
 | §8.5 版本协商 | `E701`（主版本不符）与 `E702`（必需扩展不支持）**完全没有检查**，「不得静默降级」形同虚设 | 新增 `assertSupported(manifest)`（`SUPPORTED_REQUIRED = new Set(['include','symbols','symbols:core'])`），在 `validatePackage` 与 `render` 两处调用 |
 | §6.2 `--referenced-only` | 未实现（用户决议 #3 明确要求） | CLI 支持；闭包 = 入口 + include 链 + 被引用资源 |
 | §8.6 `export --raw` / `--expanded` | 未实现，「三层兼容」缺一角 | 已实现：raw 原样输出；expanded 写展开后的入口（include 已内联、相对路径已按包根重写）+ 全部资源 |
-| §8.6 `mde diff` | 未实现 | 已实现：双方解包到临时目录后 `diff -ruN`，并把临时路径替换回 `a` / `b` |
+| §8.6 `mdpkg diff` | 未实现 | 已实现：双方解包到临时目录后 `diff -ruN`，并把临时路径替换回 `a` / `b` |
 | §6.2 `--fetch` | 需引入网络依赖与 SSRF 面 | **决定不实现**，规范已标注「参考实现 v1 未提供」并写明若将来提供必须带的四项防护 |
 
 **端到端：**
@@ -321,7 +321,7 @@ diff:              正确输出 document.md 与 manifest.json 的差异，退出
 
 ### 2.4.2 M1 结果（已完成，2026-08-30）
 
-产物：`packages/mde/`（`src/errors.ts` 错误码 · `src/container.ts` 容器层 · `src/cli.ts` CLI · `test/container.test.ts`）。
+产物：`packages/mdpkg/`（`src/errors.ts` 错误码 · `src/container.ts` 容器层 · `src/cli.ts` CLI · `test/container.test.ts`）。
 
 用 Node 22.18+ 的**内置类型剥离**直接跑 `.ts`，无需构建配置。约束：只能用 erasable syntax——构造函数参数属性（`constructor(readonly x)`）不可用，需写成显式字段。
 
@@ -329,10 +329,10 @@ diff:              正确输出 document.md 与 manifest.json 的差异，退出
 
 **端到端验证：**
 ```
-pack:   4 个条目 → out.mde (20635 B)
+pack:   4 个条目 → out.mdpkg (20635 B)
 unzip -l: manifest.json 95 · assets/images/shot.png 20000 · document.md 74 · includes/ch1.md 40
           时间列全部 01-01-1980 08:00（= UTC 1980-01-01）
-mde list: PNG 20000/20000（Store ✓）· document.md 74/75（DEFLATE）
+mdpkg list: PNG 20000/20000（Store ✓）· document.md 74/75（DEFLATE）
 unpack:  diff -r 与原目录一致 ✓
 ```
 
@@ -353,9 +353,9 @@ unpack:  diff -r 与原目录一致 ✓
 ### 场景 1：打包项目自身的 README.md
 
 ```
-第 1 次 → [MDE-E401] 引用的本地资源缺失: assets/a.png
+第 1 次 → [MDPKG-E401] 引用的本地资源缺失: assets/a.png
          （那行是「快速开始」代码块里的示例代码，不是真实引用）
-第 2 次 → [MDE-E401] 引用的本地资源缺失: spec/mde-format-spec.md
+第 2 次 → [MDPKG-E401] 引用的本地资源缺失: spec/mdpkg-format-spec.md
          （真实引用，但指向仓库内另一篇文档）
 第 3 次 → ✅ pack 2 条目 → validate OK → render 单文件
 ```
@@ -393,14 +393,14 @@ unpack:  diff -r 与原目录一致 ✓
 # Verification
 
 - [x] S1–S4 四个探针各自产出 pass/fail 结论与证据（字节 hash / 渲染输出 / 中断点 / 跨平台路径比对）→ **全部 PASS，见 §2.4.1**
-- [x] M1 退出判据可复跑 → `cd packages/mde && node --test test/container.test.ts`（9/9）+ `unzip -l` 互操作，见 §2.4.2
-- [x] M2 退出判据可复跑 → `cd packages/mde && node --test test/container.test.ts test/manifest.test.ts`（16/16）+ `node src/cli.ts validate` 端到端，见 §2.4.3
-- [x] M3 退出判据可复跑 → `cd packages/mde && node --test test/container.test.ts test/manifest.test.ts test/render.test.ts`（25/25）+ `node src/cli.ts render` 端到端，见 §2.4.4
-- [x] M4 退出判据可复跑 → `cd packages/mde && node --test test/*.test.ts`（35/35）+ 多级 include 端到端，见 §2.4.5
-- [x] M5 退出判据可复跑 → `cd packages/mde && node --test test/*.test.ts`（75/75，含 40 个 conformance fixture），见 §2.4.6
-- [x] M6 退出判据：`cd packages/mde && node --test test/*.test.ts`（78/78）；规范正文无「待定」，5 处承诺缺口已补齐或显式标注「v1 不提供」，见 §2.4.7
+- [x] M1 退出判据可复跑 → `cd packages/mdpkg && node --test test/container.test.ts`（9/9）+ `unzip -l` 互操作，见 §2.4.2
+- [x] M2 退出判据可复跑 → `cd packages/mdpkg && node --test test/container.test.ts test/manifest.test.ts`（16/16）+ `node src/cli.ts validate` 端到端，见 §2.4.3
+- [x] M3 退出判据可复跑 → `cd packages/mdpkg && node --test test/container.test.ts test/manifest.test.ts test/render.test.ts`（25/25）+ `node src/cli.ts render` 端到端，见 §2.4.4
+- [x] M4 退出判据可复跑 → `cd packages/mdpkg && node --test test/*.test.ts`（35/35）+ 多级 include 端到端，见 §2.4.5
+- [x] M5 退出判据可复跑 → `cd packages/mdpkg && node --test test/*.test.ts`（75/75，含 40 个 conformance fixture），见 §2.4.6
+- [x] M6 退出判据：`cd packages/mdpkg && node --test test/*.test.ts`（78/78）；规范正文无「待定」，5 处承诺缺口已补齐或显式标注「v1 不提供」，见 §2.4.7
 - [x] `spec/fixtures/` ≥ 33 case，`node --test` 全绿 → **43 个 case，81/81**（见 §2.4.6）
-- [x] `mde pack → validate → list → render → unpack → export` 在最小示例包上跑通，SHA-256 全程一致 → 实测见「验收复跑」
+- [x] `mdpkg pack → validate → list → render → unpack → export` 在最小示例包上跑通，SHA-256 全程一致 → 实测见「验收复跑」
 - [x] `unzip -l` 在 macOS / Linux 均可列可提 → macOS 实测；Linux 以 Python zipfile（跨平台实现）等价验证，见「验收复跑」
 - [x] 规范与实现逐条对齐，规范正文无「待定 / TBD / 实现期确定」→ grep 无残留（M6，见 §2.4.7）
 
@@ -420,6 +420,6 @@ unpack:  diff -r 与原目录一致 ✓
 
 **完整验收命令**（可复制）：
 ```bash
-cd packages/mde
+cd packages/mdpkg
 node --test test/container.test.ts test/manifest.test.ts test/render.test.ts test/include.test.ts test/fixtures.test.ts   # 81/81
 ```

@@ -3,6 +3,6 @@
   "title": "深度超限报 E504",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E504"
+    "errorCode": "MDPKG-E504"
   }
 }

@@ -1,10 +1,10 @@
 {
-  "name": "mde",
+  "name": "mdpkg",
   "version": "0.1.0",
   "type": "module",
-  "description": "MDE v1 — Markdown Enhanced package (ZIP + manifest) reference implementation",
+  "description": "mdpkg v1 — Markdown Package (ZIP + manifest) reference implementation",
   "bin": {
-    "mde": "./src/cli.ts"
+    "mdpkg": "./src/cli.ts"
   },
   "engines": {
     "node": ">=22.18"

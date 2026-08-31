@@ -3,6 +3,6 @@
   "title": "引用的本地资源缺失报 E401",
   "kind": "validate",
   "expect": {
-    "errorCode": "MDE-E401"
+    "errorCode": "MDPKG-E401"
   }
 }

@@ -7,6 +7,6 @@
     "size": 999999
   },
   "expect": {
-    "errorCode": "MDE-E402"
+    "errorCode": "MDPKG-E402"
   }
 }

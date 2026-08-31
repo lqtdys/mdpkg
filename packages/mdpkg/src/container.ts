@@ -80,7 +80,7 @@ export function pack(files: Map<string, Uint8Array>, manifest?: object): Uint8Ar
 }
 
 function minimalManifest(files: Map<string, Uint8Array>) {
-  return { mde: 'mde', spec_version: '1.0', entrypoint: 'document.md', entry_count: files.size };
+  return { format: 'mdpkg', spec_version: '1.0', entrypoint: 'document.md', entry_count: files.size };
 }
 
 /** 解包：流式读取，边读边计数，超限立即中断（不解压、不落盘） */

@@ -1,10 +1,10 @@
-# MDE (Markdown Enhanced) 合并规划：v1 标准方案
+# mdpkg (Markdown Enhanced) 合并规划：v1 标准方案
 
 **生成日期:** 2026-08-30
 **合并来源:**
 1. `PLAN.md` —— 用户原始需求与主计划（输入源）
-2. `PROPOSAL_COD.md` —— MDE-DC 双层容器二进制方案（备选设计记录）
-3. `comparison.md` —— ZIP vs MDE-DC 对比矩阵
+2. `PROPOSAL_COD.md` —— mdpkg-DC 双层容器二进制方案（备选设计记录）
+3. `comparison.md` —— ZIP vs mdpkg-DC 对比矩阵
 4. Codex 独立拟定方案（687 行，本仓库外生成）
 5. Codex 对 PLAN.md 的技术评审（7 高 / 10 中 / 3 低）
 6. Sisyphus 对 Codex 方案的审查（见 §12）
@@ -18,33 +18,33 @@
 | # | 需求 | 优先级（Codex 重排） | 本质 |
 |---|------|---------------------|------|
 | 1 | 图片自动打包（附件不丢失） | P0 | 单文件传输时资源随文档走 |
-| 2 | 单文件包传输（`.mde`） | P0 | 文档包只有一个传输文件 |
+| 2 | 单文件包传输（`.mdpkg`） | P0 | 文档包只有一个传输文件 |
 | 3 | 符号扩展 `(tm)→™` 等 | P1 | 提升输入效率，不破坏原文语义 |
 | 4 | 文件包含 `<<<` 指令 | P2 | 章节化文档与内容复用 |
 | 5 | 视频/PDF 嵌入、编辑器插件、协作 | P3 | 生态增强，不进 v1 |
 
-**"单文件"的正确定义:** 文档包只有一个传输文件；不等于 Markdown 内容必须 Base64 内嵌，也不等于普通编辑器直接打开 `.mde` 就有完整渲染。
+**"单文件"的正确定义:** 文档包只有一个传输文件；不等于 Markdown 内容必须 Base64 内嵌，也不等于普通编辑器直接打开 `.mdpkg` 就有完整渲染。
 
 ---
 
 ## 2. 收敛结论总览
 
-> **MDE v1 = 带 `manifest.json` 的 ZIP 容器 + 包内相对路径引用 + 渲染期符号转换 + 包内 include。不设计自定义二进制容器；一切有待基准数据。**（Codex 立场，本合并文档采纳）
+> **mdpkg v1 = 带 `manifest.json` 的 ZIP 容器 + 包内相对路径引用 + 渲染期符号转换 + 包内 include。不设计自定义二进制容器；一切有待基准数据。**（Codex 立场，本合并文档采纳）
 
 ### 2.1 冻结决策清单（v1 边界）
 
-1. `.mde` v1 是包含 MDE manifest 的标准 ZIP 文件。
+1. `.mdpkg` v1 是包含 mdpkg manifest 的标准 ZIP 文件。
 2. 主文档以 `manifest.entrypoint` 为唯一真源；未声明 entrypoint 时缺省为 `document.md`（替代原 PLAN 的 `index.md`）。
-3. 图片与附件使用包内**相对路径**，不使用 `mde://` 协议。
+3. 图片与附件使用包内**相对路径**，不使用 `mdpkg://` 协议。
 4. 外部 URL 默认保留为外链，不自动下载。
 5. 符号扩展只在普通文本中进行，可配置关闭，默认且仅渲染期生效。
 6. `<<< 路径` 是 v1 唯一的 include 语法，仅允许包内本地 Markdown。
 7. include 禁止访问包外文件与远程地址（防 SSRF、防不可复现）。
-8. 所有资源在 manifest 记录字节大小 + SHA-256；**用途是完整性校验（损坏/误传/NFC 字节漂移检测），不提供防篡改保证**——manifest 与资源同在包内，任何能重写包的人都可同步更新摘要，校验仍会通过。防篡改需签名（锚点在包外），v1 不提供。实现不得把校验通过描述为「未被篡改/来源可信」。见 `spec/mde-format-spec.md` §8.3。
+8. 所有资源在 manifest 记录字节大小 + SHA-256；**用途是完整性校验（损坏/误传/NFC 字节漂移检测），不提供防篡改保证**——manifest 与资源同在包内，任何能重写包的人都可同步更新摘要，校验仍会通过。防篡改需签名（锚点在包外），v1 不提供。实现不得把校验通过描述为「未被篡改/来源可信」。见 `spec/mdpkg-format-spec.md` §8.3。
 9. 打包/解包必须拒绝危险路径（`..`、绝对路径、链接文件）与符号链接。
 10. 核心 CLI 能力：`pack` / `unpack` / `list` / `validate` / `render` / `export` / `diff`。
-11. 自定义二进制容器（MDE-DC）不进入 v1 交付范围，仅保留为候选设计记录。
-12. 未来是否迁移 MDE-DC，只能由真实基准测试 + 至少两种语言实现验证后决定。
+11. 自定义二进制容器（mdpkg-DC）不进入 v1 交付范围，仅保留为候选设计记录。
+12. 未来是否迁移 mdpkg-DC，只能由真实基准测试 + 至少两种语言实现验证后决定。
 
 ---
 
@@ -52,13 +52,13 @@
 
 ### 3.1 容器与识别
 
-- `.mde` 是标准 ZIP；识别规则：扩展名 `.mde` + ZIP 根目录含 `manifest.json` + manifest 含合法的 `mde` 与 `spec_version` 字段；`entrypoint` 缺省时按 `document.md`。
-- 不满足识别条件 → 按普通 ZIP 处理，不强行当作 MDE。
+- `.mdpkg` 是标准 ZIP；识别规则：扩展名 `.mdpkg` + ZIP 根目录含 `manifest.json` + manifest 含合法的 `format` 与 `spec_version` 字段；`entrypoint` 缺省时按 `document.md`。
+- 不满足识别条件 → 按普通 ZIP 处理，不强行当作 mdpkg。
 
 ### 3.2 目录结构（建议固定）
 
 ```text
-example.mde
+example.mdpkg
 ├── manifest.json      # 格式版本 / 入口 / 扩展配置 / 资源索引(SHA-256) / 校验
 ├── document.md        # 主 Markdown
 ├── assets/            # 图片与附件
@@ -67,7 +67,7 @@ example.mde
 └── includes/          # 可被包含的 Markdown
 ```
 
-manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`extensions`（symbols/include 开关与 profile）、`resources[]`（path/media_type/size/sha256）。`entrypoint` 可省略，缺省为 `document.md`。
+manifest 最小结构：`format`、`spec_version`、`entrypoint`、`encoding`、`extensions`（symbols/include 开关与 profile）、`resources[]`（path/media_type/size/sha256）。`entrypoint` 可省略，缺省为 `document.md`。
 
 ### 3.3 编码与路径硬规则
 
@@ -91,7 +91,7 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 ### 4.1 图片与资源引用（自动打包）
 
 - 源文件使用**原生相对路径**：`![产品截图](assets/images/product.png)`。
-- `mde pack project/` 行为：确定入口 → **默认打包目录内全部文件** → **遍历 include 传递闭包**校验引用完整性；`--referenced-only` 则只打引用闭包；项目根之外的路径默认拒绝；外链默认保留（`--fetch` 显式下载并记 `source_url`）；**被引用的本地资源缺失直接报错**（`MDE-E401`）；**孤儿资源仅 warning**（`MDE-E404`）。
+- `mdpkg pack project/` 行为：确定入口 → **默认打包目录内全部文件** → **遍历 include 传递闭包**校验引用完整性；`--referenced-only` 则只打引用闭包；项目根之外的路径默认拒绝；外链默认保留（`--fetch` 显式下载并记 `source_url`）；**被引用的本地资源缺失直接报错**（`MDPKG-E401`）；**孤儿资源仅 warning**（`MDPKG-E404`）。
   - 引用校验**必须走 include 传递闭包**：只扫入口文档会漏掉被包含子文档里的图片，直接违反 P0「附件不丢失」。
   - 默认全量打包的理由：代码量比「精准扫描」少一个数量级，且孤儿只是体积代价、缺图是正确性缺陷，两者风险不对称。
 - v1 资源类型：PNG/JPEG/GIF/SVG/WebP + 文本附件 + Markdown。视频/PDF 可打包但 MVP 不承诺专用预览。SVG 默认作为 `<img>` 引用渲染（不内联），仅 `--unsafe-inline-svg` 才内联。
@@ -110,7 +110,7 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 ### 4.3 文件包含
 
 - 语法：`<<< includes/chapter-1.md`（路径含空格用引号）。
-- 规则：**仅在列 0（行首无缩进）且整行匹配 `^<<<\s*(.+?)\s*$` 时触发**；仅包内 Markdown；不允许 URL 与其他 `.mde` 包；解析前展开；报错带源文件+行号；必须循环检测。
+- 规则：**仅在列 0（行首无缩进）且整行匹配 `^<<<\s*(.+?)\s*$` 时触发**；仅包内 Markdown；不允许 URL 与其他 `.mdpkg` 包；解析前展开；报错带源文件+行号；必须循环检测。
   - **不要求感知代码块上下文**：include 在 Markdown 解析**之前**执行，此时可靠判断围栏（`` ``` `` / `~~~` / 不等长围栏 / 4 空格缩进 / 列表内嵌套）等于要求预处理器自研一个 Markdown 扫描器，必然导致实现分叉。已知局限：列 0 的围栏代码块内出现符合上式的行会被展开，**属已知且可接受行为，本规范不修复**；缩进 ≥1 空格天然不触发。
 - 硬限制（v1）：最大深度 32、可配置单文档展开字节数、可配置包含次数；规范化路径必须位于包根内。
 
@@ -120,11 +120,11 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 
 | 层 | 承诺 | 说明 |
 |----|------|------|
-| 容器兼容 | `.mde` = 标准 ZIP，`unzip -l` 可列目录 | 普通编辑器不承诺直接打开 `.mde` |
+| 容器兼容 | `.mdpkg` = 标准 ZIP，`unzip -l` 可列目录 | 普通编辑器不承诺直接打开 `.mdpkg` |
 | 文档兼容 | `document.md` 用标准 Markdown + 相对路径；符号保持源文本；`<<<` 降级为可见文本 | 解包/导出后是普通 Markdown |
 | 导出兼容 | `export --raw`（输出**目录**，保持包内结构、文本一字不改）/ `export --expanded`（输出**目录**，含展开后的 Markdown + 全部资源）| 导出后的 Markdown 可被任何标准工具打开。**两者都必须是目录**：未展开的文档其 include 指令与相对路径在其他层级下无意义，输出成单文件必然损坏 |
 
-版本兼容：主版本断裂（`MDE-E701`）、次版本只增可忽略字段、未知扩展默认不执行（`MDE-E703` warning）、**必需扩展缺失必须报错**——manifest 增 `extensions_required: string[]`，渲染器不支持其中任一项即 `MDE-E702` 退出，**不得静默降级**。
+版本兼容：主版本断裂（`MDPKG-E701`）、次版本只增可忽略字段、未知扩展默认不执行（`MDPKG-E703` warning）、**必需扩展缺失必须报错**——manifest 增 `extensions_required: string[]`，渲染器不支持其中任一项即 `MDPKG-E702` 退出，**不得静默降级**。
 
 ---
 
@@ -133,7 +133,7 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 规范必须固定以下顺序，否则跨实现无法对齐：
 
 ```text
-读取 .mde
+读取 .mdpkg
   → 1. 解包/读取 (ZIP)
   → 2. 校验 manifest + 资源哈希
   → 3. 预处理: include 展开 (循环/深度/大小限制)
@@ -153,14 +153,14 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 
 | 阶段 | 范围 | 完成标准 |
 |------|------|----------|
-| **Phase 0A: 规范资产** | `spec/mde-format-spec.md` 正文 + `spec/schema/manifest-1.0.json` + 错误码表 + 最小示例包骨架 | 文档内无「待定/TBD/实现期确定」残留；含 URL 重写、`^<<<` 触发规则、mtime 常量、`extensions_required`、manifest 字段归属表全部决议 |
+| **Phase 0A: 规范资产** | `spec/mdpkg-format-spec.md` 正文 + `spec/schema/manifest-1.0.json` + 错误码表 + 最小示例包骨架 | 文档内无「待定/TBD/实现期确定」残留；含 URL 重写、`^<<<` 触发规则、mtime 常量、`extensions_required`、manifest 字段归属表全部决议 |
 | **Phase 0B: 一致性向量** | `spec/fixtures/` ≥ 33 case（覆盖 §8 全部 7 类，含负向与安全） + fixture 格式定义 | 格式稳定，`node --test` 可驱动；`pack` 用例必须额外断言「同输入两次打包字节相同」 |
 | **Phase 0C: 第二视角** | 第二实现者（或人肉按规范手写最小包）验证 ≥ 3 case | 至少暴露并修掉 1 处规范歧义。不等 Phase 3 才引入第二视角，否则规范缺陷会被参考实现掩盖 |
 | **Phase 1: ZIP MVP** | pack/unpack/list/validate + 本地图片打包 + core 符号 + 本地 include + HTML 渲染 + 资源完整性校验 | 可生成合法包、可校验/解包、图片预览正确、符号边界正确、include 拒绝循环、资源上限（解包资源数/单文件大小/总解压大小/include 深度）可配置且默认生效、通用 ZIP 工具可读 |
-| **Phase 2: 编辑闭环** | VS Code 插件（打开/编辑/保存/重打包）+ `mde diff` | 解包→编辑→重打包周期不丢作者配置、不残留过期哈希（见 §12.1 与规范 §4.2 字段归属表）；`mde diff` 可对比两包文本差异 |
-| **Phase 3: 生态** | Node/TS SDK、Python SDK、Web/WASM 查看器、签名、自定义符号、示例库、跨实现兼容测试 | MDE-DC 仅在此阶段实验性评估，不预先承诺迁移 |
+| **Phase 2: 编辑闭环** | VS Code 插件（打开/编辑/保存/重打包）+ `mdpkg diff` | 解包→编辑→重打包周期不丢作者配置、不残留过期哈希（见 §12.1 与规范 §4.2 字段归属表）；`mdpkg diff` 可对比两包文本差异 |
+| **Phase 3: 生态** | Node/TS SDK、Python SDK、Web/WASM 查看器、签名、自定义符号、示例库、跨实现兼容测试 | mdpkg-DC 仅在此阶段实验性评估，不预先承诺迁移 |
 
-**Phase 2 已收窄**：原列 7 项（VS Code 插件、资源面板、增量渲染、PDF/视频附件管理、错误定位、双模式导出、Git diff 辅助）砍到 2 项——一次列 7 项正是 Codex 批评原 PLAN 的「范围过大」（§11 高 #6）在 Phase 2 原地重演。`mde diff` 约 30 行（双方解包到临时目录 + `diff -ruN`），直接吃掉「Git diff 辅助」整项；双模式导出已归入 Phase 1。
+**Phase 2 已收窄**：原列 7 项（VS Code 插件、资源面板、增量渲染、PDF/视频附件管理、错误定位、双模式导出、Git diff 辅助）砍到 2 项——一次列 7 项正是 Codex 批评原 PLAN 的「范围过大」（§11 高 #6）在 Phase 2 原地重演。`mdpkg diff` 约 30 行（双方解包到临时目录 + `diff -ruN`），直接吃掉「Git diff 辅助」整项；双模式导出已归入 Phase 1。
 
 **`render` 输出形态（已定）**：默认 `--inline`（资源 data URI 内联，产出**单个自包含 HTML**，贴合「AI 生成文档交付」定位）；资源总字节 > `--max-inline-bytes`（默认 50 MB）时自动降级 `--dir` 并在 stderr 提示；显式 `--inline` / `--dir` 忽略阈值。纯 inline 会在 100 MB 包上爆内存，纯 dir 又丢掉单文件交付的核心卖点——阈值切换两边都不牺牲。
 
@@ -189,7 +189,7 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 | 外部资源不可复现 | 中 | 默认不下载；本地/外链显式区分 |
 | 路径遍历/恶意归档 | 高 | 路径规范化、拒绝对接链接、解压规模限制 |
 | include 无限递归/放大 | 高 | 深度/次数/总大小三重限制 |
-| 普通编辑器打不开 `.mde` | 中 | 通用 ZIP 解包 + 标准 Markdown 导出 |
+| 普通编辑器打不开 `.mdpkg` | 中 | 通用 ZIP 解包 + 标准 Markdown 导出 |
 | 自定义格式过早设计 | 高 | v1 纯 ZIP，基准数据驱动后续 |
 | 规范分裂（三文档各说各话） | 高 | 本合并文档为唯一现行立场；另三份旧文档已加弃用 banner（§14） |
 | 编辑-重打包内容不同步 | 中 | §12.1 编辑模式规则（Sisyphus 补充） |
@@ -206,13 +206,13 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 
 | 决策点 | 原 PLAN.md | Codex 方案 | **合并结论** | 理由 |
 |--------|-----------|-----------|-------------|------|
-| v1 容器 | ZIP（但 Phase 2 动摇） | ZIP 唯一；MDE-DC 需基准 | **ZIP + manifest** | 现成生态、安全成熟、快验证需求 |
-| 资源引用 | `mde://assets/...` | 原生相对路径 | **相对路径** | 解压/导出即标准 Markdown；`mde://` 破坏降级 |
+| v1 容器 | ZIP（但 Phase 2 动摇） | ZIP 唯一；mdpkg-DC 需基准 | **ZIP + manifest** | 现成生态、安全成熟、快验证需求 |
+| 资源引用 | `mdpkg://assets/...` | 原生相对路径 | **相对路径** | 解压/导出即标准 Markdown；`mdpkg://` 破坏降级 |
 | 元数据 | HTML 注释 | manifest.json | **manifest.json** | 注释会被编辑器剥离；机器可读元数据必须独立文件 |
 | 入口命名 | index.md | document.md | **document.md** | 统一即可，缺省 document.md（§12.8） |
 | 二进制迁移 | 收敛失败（三处矛盾） | 不承诺，基准驱动 | **不承诺 + 触发条件明确** | 性能未测就先定方案是伪决策 |
 | 符号转换 | 仅列映射表 | 边界 + profile + 转义 | **采纳 Codex + 词边界补强（§12.3）** | 误替换是符号功能最大风险 |
-| include | `<<< mde://...` | `<<< 包内路径` | **采纳 Codex（禁远程）** | 远程 include = SSRF + 不可复现 |
+| include | `<<< mdpkg://...` | `<<< 包内路径` | **采纳 Codex（禁远程）** | 远程 include = SSRF + 不可复现 |
 | Base64 | 备选内嵌 | 仅导出选项 | **仅导出选项** | 33.3% 开销 + ZIP 内已压缩图片无收益 |
 | MVP 范围 | 打包器+渲染器+引擎三件套 | 收窄为 6 CLI + 渲染 | **采纳 Codex** | 范围小才可能完成 |
 | 兼容性表述 | "解压后是标准 MD" | 三层兼容 | **三层兼容** | 笼统表述导致错误预期 |
@@ -225,10 +225,10 @@ manifest 最小结构：`mde`、`spec_version`、`entrypoint`、`encoding`、`ex
 
 | # | 审查发现 | 处置 |
 |---|---------|------|
-| 1 | 方案结论没收敛（PLAN 推 ZIP、comparison 推 MDE-DC、PLAN:367 又不推二进制） | §2 冻结清单 #11/#12 |
+| 1 | 方案结论没收敛（PLAN 推 ZIP、comparison 推 mdpkg-DC、PLAN:367 又不推二进制） | §2 冻结清单 #11/#12 |
 | 2 | 没有真正的格式规范（无 manifest/编码/路径/校验/版本协商） | §3 规范要点 + §7 Phase 0 标准 |
 | 3 | "向后兼容"表述不成立 | §5 三层兼容 |
-| 4 | 图片流程自相矛盾（`mde://` vs 自动检测） | §4.1 相对路径 + 引用扫描 |
+| 4 | 图片流程自相矛盾（`mdpkg://` vs 自动检测） | §4.1 相对路径 + 引用扫描 |
 | 5 | ZIP 安全严重低估 | §8.5 + §9 |
 | 6 | MVP 范围过大且状态不可信（`[x]`/`[ ]` 打架） | §7 Phase 1 收窄；状态以本文档为准 |
 | 7 | 开源标准定位不清晰（无目标用户/成功指标） | **§13 已拍板 #1** |
@@ -275,7 +275,7 @@ Codex 方案整体质量高（manifest 中心化、相对路径、可重复构�
 | 3 | 符号集范围 | 先 core，extended 后置；映射表来源声明许可证（PyMdown MIT） |
 | 4 | 编辑模式 | 重打包重建 manifest（以实际扫描结果为准） |
 | 5 | 规范许可证与治理 | CC-BY 4.0（规范文本）/ MIT（代码）双轨，扩展注册制 v1 后可缓；**测试向量 `spec/fixtures/` 单独 CC0**（需被任意实现无摩擦复制，CC-BY 的署名义务是摩擦）；符号映射表参考 PyMdown（MIT），采用时保留其版权声明 |
-| 6 | MIME/文件关联 | 规范稳定后注册 `application/vnd.mde+zip` |
+| 6 | MIME/文件关联 | 规范稳定后注册 `application/vnd.mdpkg+zip` |
 
 ---
 
@@ -285,19 +285,19 @@ Codex 方案整体质量高（manifest 中心化、相对路径、可重复构�
 
 - ✅ **PLAN_MERGED.md** → 唯一现行立场来源。
 - ✅ **PLAN.md** → 保留为历史输入（需求与原始背景），头部已加弃用 banner。
-- ✅ **comparison.md** → 降级为 ADR 素材（记录「为何弃用 MDE-DC」），头部已加弃用 banner。
-- ✅ **PROPOSAL_COD.md** → 保留为候选设计记录（MDE-DC v2 候选），头部已加弃用 banner。
+- ✅ **comparison.md** → 降级为 ADR 素材（记录「为何弃用 mdpkg-DC」），头部已加弃用 banner。
+- ✅ **PROPOSAL_COD.md** → 保留为候选设计记录（mdpkg-DC v2 候选），头部已加弃用 banner。
 - ✅ **AGENTS.md** → STRUCTURE/NOTES 已同步立场变化与 §13 已拍板状态。
 
 **下一步（Phase 0 启动序）**：
 
 1. ✅ §13 已拍板（本修订完成）；§2–§12 编号引用已统一。
-2. ✅ **v1 规范初稿已产出**：`spec/mde-format-spec.md`（MUST/SHOULD/MAY 正文 + 附录 A 错误码表 + 附录 B fixture 格式与 33 用例清单 + 附录 C JSON Schema）。
+2. ✅ **v1 规范初稿已产出**：`spec/mdpkg-format-spec.md`（MUST/SHOULD/MAY 正文 + 附录 A 错误码表 + 附录 B fixture 格式与 33 用例清单 + 附录 C JSON Schema）。
 3. 落盘 `spec/schema/manifest-1.0.json`（附录 C）+ `spec/fixtures/` 用例（附录 B.3）。**先写 3 个 case 再补全文**——fixture 会主动逼出规范含糊处，比空想写规范快得多。
 4. Phase 1 CLI 实现（Node.js/TypeScript）：`pack`/`unpack`/`list`/`validate` → `render` → `export`；符号与 include 可并行。
 5. ✅ **技术选型已锁定**：`remark/unified`（符号转换 = 遍历 mdast `text` 节点——code / inlineCode / link.url / html 天然不是 text 节点，零自研解析器即满足 §4.2 全部排除区）+ `fflate`（可精确控制条目顺序与 mtime，直接满足 §3.4 可重复构建；流式 Unzip 便于解压中计数做炸弹防护）+ `rehype-sanitize` + `ajv` + `node:test`（Node 22+ 内置，零新增依赖）。
 
-> 注：实现代码放本仓库 `packages/`（AGENTS.md 的「实现应放 `~/mde`」已失效——`~/mde` 就是本仓库，与 ANTI-PATTERNS「本仓库不创建实现代码」自相矛盾，需同步修订 AGENTS.md）。
+> 注：实现代码放本仓库 `packages/`（AGENTS.md 的「实现应放 `~/mdpkg`」已失效——`~/mdpkg` 就是本仓库，与 ANTI-PATTERNS「本仓库不创建实现代码」自相矛盾，需同步修订 AGENTS.md）。
 
 ---
 

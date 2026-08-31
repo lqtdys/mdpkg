@@ -1,9 +1,9 @@
-# MDE 规划审查：哪儿有问题、怎么改
+# mdpkg 规划审查：哪儿有问题、怎么改
 
 ## Context
 
-用户要求审查 `PLAN_MERGED.md`（MDE v1 合并规划，项目现行唯一立场来源），提出改进建议与落地方案。
-本仓库为纯规划仓库；实现代码在兄弟仓库（原 `~/mdx`，已更名为 `~/mde`）。审查基于四份文档：`PLAN_MERGED.md`、`PLAN.md`、`comparison.md`、`AGENTS.md`。
+用户要求审查 `PLAN_MERGED.md`（mdpkg v1 合并规划，项目现行唯一立场来源），提出改进建议与落地方案。
+本仓库为纯规划仓库；实现代码在兄弟仓库（原 `~/mdx`，已更名为 `~/mdpkg`）。审查基于四份文档：`PLAN_MERGED.md`、`PLAN.md`、`comparison.md`、`AGENTS.md`。
 
 ## 总评
 
@@ -95,7 +95,7 @@
 | 6 | `PLAN.md` / `comparison.md` / `PROPOSAL_COD.md` | 头部加 deprecation banner | #6 |
 | 7 | `PLAN_MERGED.md` §7 + §8 | Phase 1 完成标准补资源上限硬约束；补最小示例包骨架 | #7 #8 |
 | 8 | `PLAN_MERGED.md` §6 + §4.1 | 写死 SVG 渲染方式 + 外部 URL referrer 策略 | #10 #L1 |
-| 9 | 新建 `spec/mde-format-spec.md` 骨架 | Phase 0 产物：MUST/SHOULD/MAY 规范初稿 + JSON Schema + 错误码表目录 | #9 |
+| 9 | 新建 `spec/mdpkg-format-spec.md` 骨架 | Phase 0 产物：MUST/SHOULD/MAY 规范初稿 + JSON Schema + 错误码表目录 | #9 |
 
 ### 验证
 - [ ] 逐条对 §13 未决项标注「有/无默认值 + 拍板截止点」

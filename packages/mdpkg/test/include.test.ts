@@ -55,19 +55,19 @@ test('嵌套与深度: 多层展开正常，超限报 E504', () => {
   const chain: Record<string, string> = { 'document.md': '<<< a1.md\n' };
   for (let i = 1; i < INCLUDE_LIMITS.depth + 3; i++) chain[`a${i}.md`] = `L${i}\n<<< a${i + 1}.md\n`;
   const { files } = build(chain);
-  throwsCode(() => expand(files, 'document.md'), 'MDE-E504');
+  throwsCode(() => expand(files, 'document.md'), 'MDPKG-E504');
 });
 
 test('循环包含: 报 E507', () => {
   const { files } = build({ 'document.md': '<<< a.md\n', 'a.md': '<<< b.md\n', 'b.md': '<<< a.md\n' });
-  throwsCode(() => expand(files, 'document.md'), 'MDE-E507');
+  throwsCode(() => expand(files, 'document.md'), 'MDPKG-E507');
 });
 
 test('目标异常: 包外 E501 / URL E502 / 非 Markdown E503 / 不存在 E508', () => {
-  throwsCode(() => expand(build({ 'document.md': '<<< ../outside.md\n' }).files, 'document.md'), 'MDE-E501');
-  throwsCode(() => expand(build({ 'document.md': '<<< https://x.com/a.md\n' }).files, 'document.md'), 'MDE-E502');
-  throwsCode(() => expand(build({ 'document.md': '<<< a.png\n' }).files, 'document.md'), 'MDE-E503');
-  throwsCode(() => expand(build({ 'document.md': '<<< nope.md\n' }).files, 'document.md'), 'MDE-E508');
+  throwsCode(() => expand(build({ 'document.md': '<<< ../outside.md\n' }).files, 'document.md'), 'MDPKG-E501');
+  throwsCode(() => expand(build({ 'document.md': '<<< https://x.com/a.md\n' }).files, 'document.md'), 'MDPKG-E502');
+  throwsCode(() => expand(build({ 'document.md': '<<< a.png\n' }).files, 'document.md'), 'MDPKG-E503');
+  throwsCode(() => expand(build({ 'document.md': '<<< nope.md\n' }).files, 'document.md'), 'MDPKG-E508');
 });
 
 test('sourcemap: 展开后可追溯到原始文件与行号', () => {

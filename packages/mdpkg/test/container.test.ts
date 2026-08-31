@@ -12,7 +12,7 @@ import { MdeError } from '../src/errors.ts';
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Uint8Array(2000).fill(7)]);
 
 function fixture(): string {
-  const d = mkdtempSync(join(tmpdir(), 'mde-'));
+  const d = mkdtempSync(join(tmpdir(), 'mdpkg-'));
   // 文本要足够长：几十字节的文档经 DEFLATE 反而会膨胀（实测 43B → 46B），测不出压缩策略
   writeFileSync(join(d, 'document.md'), '# 标题 (tm)\n\n![图](assets/images/a.png)\n\n' + '这是一段用于验证 DEFLATE 压缩生效的重复文本。\n'.repeat(20));
   mkdirSync(join(d, 'assets/images'), { recursive: true });
@@ -36,29 +36,29 @@ test('条目顺序: manifest.json 最前，其余按路径码位升序', async (
 });
 
 test('路径规范化: 拒绝 ../ 与绝对路径与盘符', () => {
-  assert.throws(() => normalizePath('../etc/passwd'), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E202');
-  assert.throws(() => normalizePath('/etc/passwd'), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E202');
-  assert.throws(() => normalizePath('C:\\Windows'), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E202');
+  assert.throws(() => normalizePath('../etc/passwd'), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E202');
+  assert.throws(() => normalizePath('/etc/passwd'), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E202');
+  assert.throws(() => normalizePath('C:\\Windows'), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E202');
   assert.equal(normalizePath('a//b/./c.md'), 'a/b/c.md');
 });
 
 test('NFC 归一化: NFD 输入归一为 NFC（跨平台 sha256 一致的前提）', () => {
-  const d = mkdtempSync(join(tmpdir(), 'mde-nfc-'));
+  const d = mkdtempSync(join(tmpdir(), 'mdpkg-nfc-'));
   writeFileSync(join(d, 'cafe\u0301.md'), 'x'); // NFD（macOS APFS 的存法）
   const paths = [...collectFiles(d).keys()];
   assert.ok(paths.every((p) => p === p.normalize('NFC')), `未归一化: ${JSON.stringify(paths)}`);
 });
 
 test('拒绝符号链接', () => {
-  const d = mkdtempSync(join(tmpdir(), 'mde-link-'));
+  const d = mkdtempSync(join(tmpdir(), 'mdpkg-link-'));
   writeFileSync(join(d, 'a.md'), 'x');
   symlinkSync(join(d, 'a.md'), join(d, 'link.md'));
-  assert.throws(() => collectFiles(d), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E601');
+  assert.throws(() => collectFiles(d), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E601');
 });
 
 test('路径冲突: 仅大小写不同则拒绝', () => {
   const files = new Map<string, Uint8Array>([['A.md', new Uint8Array([1])], ['a.md', new Uint8Array([2])]]);
-  assert.throws(() => pack(files), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E201');
+  assert.throws(() => pack(files), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E201');
 });
 
 test('压缩策略: 媒体 Store、文本 DEFLATE', async () => {
@@ -72,7 +72,7 @@ test('压缩策略: 媒体 Store、文本 DEFLATE', async () => {
 test('ZIP 炸弹: 超高压缩比在读 header 阶段即被拒绝，不解压', async () => {
   const bomb = zipSync({ 'bomb.bin': new Uint8Array(12 * 1024 * 1024) }, { level: 9 });
   assert.ok(bomb.length < 20 * 1024, `炸弹压缩包应远小于原始，实际 ${bomb.length} B`);
-  await assert.rejects(() => unpack(new Uint8Array(bomb)), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E605');
+  await assert.rejects(() => unpack(new Uint8Array(bomb)), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E605');
 });
 
 test('往返: pack → unpack 内容一致', async () => {

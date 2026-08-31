@@ -34,7 +34,7 @@ test('media_type 推断', () => {
 test('字段归属: 作者意图继承，机器事实重算，spec_version 不继承', () => {
   const files = baseFiles();
   const prev = {
-    mde: 'mde' as const, spec_version: '0.9', entrypoint: 'main.md',
+    format: 'mdpkg' as const, spec_version: '0.9', entrypoint: 'main.md',
     extensions: { symbols: 'off' as const }, extensions_required: ['include'],
     resources: [{ path: 'document.md', media_type: 'text/markdown', size: 1, sha256: 'deadbeef', source_url: 'https://orig/x.md' }],
   };
@@ -52,7 +52,7 @@ test('引用闭包: 缺失引用报错 E401，孤儿资源仅告警', () => {
   assert.deepEqual(checkClosure(files, DEFAULT_ENTRYPOINT).orphans, ['includes/ch1.md']);
 
   const broken = new Map([['document.md', enc('![缺图](assets/images/nope.png)\n')]]);
-  assert.throws(() => checkClosure(broken, DEFAULT_ENTRYPOINT), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E401');
+  assert.throws(() => checkClosure(broken, DEFAULT_ENTRYPOINT), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E401');
 });
 
 test('H1 回归: 被包含文档里的图片缺失也要报 E401（引用校验必须走 include 闭包）', () => {
@@ -60,7 +60,7 @@ test('H1 回归: 被包含文档里的图片缺失也要报 E401（引用校验�
     ['document.md', enc('<<< includes/ch1.md\n')],
     ['includes/ch1.md', enc('![图](img/fig.png)\n')],
   ]);
-  assert.throws(() => checkClosure(files, DEFAULT_ENTRYPOINT), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E401');
+  assert.throws(() => checkClosure(files, DEFAULT_ENTRYPOINT), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E401');
   // 补上展开重写后的路径（includes/img/fig.png）即通过，且被包含文件不算孤儿
   files.set('includes/img/fig.png', new Uint8Array([1]));
   assert.deepEqual(checkClosure(files, DEFAULT_ENTRYPOINT).orphans, []);
@@ -86,37 +86,37 @@ test('validate: 干净包通过；篡改 size / sha 被检出；未登记文件�
   const m = JSON.parse(new TextDecoder().decode(tampered.get('manifest.json')!));
   m.resources[0].size = 999;
   tampered.set('manifest.json', new TextEncoder().encode(JSON.stringify(m)));
-  assert.ok(validatePackage(tampered).errors.some((e) => e.includes('MDE-E402')));
+  assert.ok(validatePackage(tampered).errors.some((e) => e.includes('MDPKG-E402')));
 
   const badSha = new Map(clean);
   const m2 = JSON.parse(new TextDecoder().decode(badSha.get('manifest.json')!));
   m2.resources[0].sha256 = 'f'.repeat(64);
   badSha.set('manifest.json', new TextEncoder().encode(JSON.stringify(m2)));
-  assert.ok(validatePackage(badSha).errors.some((e) => e.includes('MDE-E403')));
+  assert.ok(validatePackage(badSha).errors.some((e) => e.includes('MDPKG-E403')));
 
   const unlisted = new Map(clean);
   unlisted.set('stray.txt', enc('x'));
-  assert.ok(validatePackage(unlisted).errors.some((e) => e.includes('MDE-E304')));
+  assert.ok(validatePackage(unlisted).errors.some((e) => e.includes('MDPKG-E304')));
 });
 
 test('版本协商: 主版本不符报 E701，必需扩展不支持报 E702（不得静默降级）', () => {
-  assert.throws(() => assertSupported({ mde: 'mde', spec_version: '2.0', resources: [] }),
-    (e: unknown) => e instanceof MdeError && e.code === 'MDE-E701');
-  assert.throws(() => assertSupported({ mde: 'mde', spec_version: '1.0', extensions_required: ['hologram'], resources: [] }),
-    (e: unknown) => e instanceof MdeError && e.code === 'MDE-E702');
+  assert.throws(() => assertSupported({ format: 'mdpkg', spec_version: '2.0', resources: [] }),
+    (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E701');
+  assert.throws(() => assertSupported({ format: 'mdpkg', spec_version: '1.0', extensions_required: ['hologram'], resources: [] }),
+    (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E702');
   // 次版本更高不报错；支持的必需扩展不报错
-  assertSupported({ mde: 'mde', spec_version: '1.9', extensions_required: ['include', 'symbols:core'], resources: [] });
+  assertSupported({ format: 'mdpkg', spec_version: '1.9', extensions_required: ['include', 'symbols:core'], resources: [] });
   // render 也应因 E702 而失败，而非静默降级（render 直接吃 Map，无需打包）
   const files = baseFiles();
   const m = buildManifest(files);
   m.extensions_required = ['hologram'];
   const pkgFiles = new Map([...files, ['manifest.json', enc(JSON.stringify(m))]]);
-  assert.throws(() => render(pkgFiles, {}), (e: unknown) => e instanceof MdeError && e.code === 'MDE-E702');
+  assert.throws(() => render(pkgFiles, {}), (e: unknown) => e instanceof MdeError && e.code === 'MDPKG-E702');
 });
 
 test('引用收集基于 AST：代码块内的示例不算引用，到本地 md 的链接不强制打包', () => {
   // dogfood 发现：打包项目自己的 README 时，快速开始代码块里的 ![图](assets/a.png)
-  // 被当成真实引用导致 E401；且 README 对 spec/mde-format-spec.md 的链接会要求连带整个仓库
+  // 被当成真实引用导致 E401；且 README 对 spec/mdpkg-format-spec.md 的链接会要求连带整个仓库
   const md = [
     '真实图片：![a](assets/a.png)',
     '',
@@ -135,7 +135,7 @@ test('引用收集基于 AST：代码块内的示例不算引用，到本地 md 
 
 test('validate: 缺少 manifest.json 报 E102；非法 JSON 报 E302', () => {
   const r = validatePackage(new Map([['document.md', enc('# x')]]));
-  assert.ok(r.errors.some((e) => e.includes('MDE-E102')));
+  assert.ok(r.errors.some((e) => e.includes('MDPKG-E102')));
   const r2 = validatePackage(new Map([['manifest.json', enc('{ not json')]]));
-  assert.ok(r2.errors.some((e) => e.includes('MDE-E302')));
+  assert.ok(r2.errors.some((e) => e.includes('MDPKG-E302')));
 });

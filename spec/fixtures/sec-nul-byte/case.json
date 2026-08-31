@@ -3,7 +3,7 @@
   "title": "拒绝 NUL 字节",
   "kind": "path",
   "expect": {
-    "errorCode": "MDE-E202",
+    "errorCode": "MDPKG-E202",
     "pathInput": "a\u0000b.md"
   }
 }

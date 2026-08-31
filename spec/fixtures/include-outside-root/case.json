@@ -3,6 +3,6 @@
   "title": "目标在包外报 E501",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E501"
+    "errorCode": "MDPKG-E501"
   }
 }

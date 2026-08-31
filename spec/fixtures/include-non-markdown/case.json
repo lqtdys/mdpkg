@@ -3,6 +3,6 @@
   "title": "目标非 Markdown 报 E503",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E503"
+    "errorCode": "MDPKG-E503"
   }
 }

@@ -3,6 +3,6 @@
   "title": "目标为 URL 报 E502（v1 禁止远程包含）",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E502"
+    "errorCode": "MDPKG-E502"
   }
 }

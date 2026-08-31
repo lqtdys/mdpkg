@@ -3,6 +3,6 @@
   "title": "循环包含报 E507",
   "kind": "expand",
   "expect": {
-    "errorCode": "MDE-E507"
+    "errorCode": "MDPKG-E507"
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MDE CLI — M1: pack / unpack / list（M2 起补 validate / render / export / diff）
+// mdpkg CLI — M1: pack / unpack / list（M2 起补 validate / render / export / diff）
 import { parseArgs } from 'node:util';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, lstatSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -38,7 +38,7 @@ function readPkg(p: string): Uint8Array {
 async function main() {
   if (cmd === 'pack') {
     const dir = rest[0];
-    if (!dir || !out) die('用法: mde pack <dir> -o <out.mde>', EXIT.USAGE);
+    if (!dir || !out) die('用法: mdpkg pack <dir> -o <out.mdpkg>', EXIT.USAGE);
     if (!existsSync(dir) || !lstatSync(dir).isDirectory()) die(`不是目录: ${dir}`, EXIT.USAGE);
     const target = resolve(out);
     const files = collectFiles(resolve(dir));
@@ -72,7 +72,7 @@ async function main() {
 
   if (cmd === 'unpack') {
     const pkg = rest[0];
-    if (!pkg || !out) die('用法: mde unpack <file.mde> -o <dir>', EXIT.USAGE);
+    if (!pkg || !out) die('用法: mdpkg unpack <file.mdpkg> -o <dir>', EXIT.USAGE);
     const files = await unpack(readPkg(pkg));
     for (const [p, data] of files) {
       const dest = join(out, p);
@@ -86,7 +86,7 @@ async function main() {
   if (cmd === 'export') {
     const pkg = rest[0];
     const mode = values.raw ? 'raw' : values.expanded ? 'expanded' : null;
-    if (!pkg || !mode || !out) die('用法: mde export (--raw | --expanded) <file.mde> -o <dir>', EXIT.USAGE);
+    if (!pkg || !mode || !out) die('用法: mdpkg export (--raw | --expanded) <file.mdpkg> -o <dir>', EXIT.USAGE);
     const files = await unpack(readPkg(pkg));
     const manifest = files.has('manifest.json') ? JSON.parse(new TextDecoder().decode(files.get('manifest.json')!)) : {};
     const entry: string = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
@@ -111,9 +111,9 @@ async function main() {
 
   if (cmd === 'diff') {
     const [a, b] = rest;
-    if (!a || !b) die('用法: mde diff <a.mde> <b.mde>', EXIT.USAGE);
-    const dirA = mkdtempSync(join(tmpdir(), 'mde-diff-a-'));
-    const dirB = mkdtempSync(join(tmpdir(), 'mde-diff-b-'));
+    if (!a || !b) die('用法: mdpkg diff <a.mdpkg> <b.mdpkg>', EXIT.USAGE);
+    const dirA = mkdtempSync(join(tmpdir(), 'mdpkg-diff-a-'));
+    const dirB = mkdtempSync(join(tmpdir(), 'mdpkg-diff-b-'));
     for (const [src, dest] of [[a, dirA], [b, dirB]] as const) {
       for (const [p, data] of await unpack(readPkg(src))) {
         const target = join(dest, p);
@@ -129,10 +129,10 @@ async function main() {
 
   if (cmd === 'render') {
     const pkg = rest[0];
-    if (!pkg) die('用法: mde render <file.mde> [-o out.html] [--inline | --dir]', EXIT.USAGE);
+    if (!pkg) die('用法: mdpkg render <file.mdpkg> [-o out.html] [--inline | --dir]', EXIT.USAGE);
     const files = await unpack(readPkg(pkg));
     const r = render(files, { inline: 'inline' in values, dir: 'dir' in values });
-    const target = resolve(out ?? pkg.replace(/\.mde$/i, '.html'));
+    const target = resolve(out ?? pkg.replace(/\.mdpkg$/i, '.html'));
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, wrapDocument(pkg.replace(/^.*\//, ''), r.html));
     if (r.degraded) {
@@ -155,7 +155,7 @@ async function main() {
 
   if (cmd === 'validate') {
     const pkg = rest[0];
-    if (!pkg) die('用法: mde validate <file.mde>', EXIT.USAGE);
+    if (!pkg) die('用法: mdpkg validate <file.mdpkg>', EXIT.USAGE);
     const r = validatePackage(await unpack(readPkg(pkg)));
     for (const w of r.warnings) process.stderr.write(w + '\n');
     for (const e of r.errors) process.stderr.write(e + '\n');
@@ -169,7 +169,7 @@ async function main() {
 
   if (cmd === 'list') {
     const pkg = rest[0];
-    if (!pkg) die('用法: mde list <file.mde>', EXIT.USAGE);
+    if (!pkg) die('用法: mdpkg list <file.mdpkg>', EXIT.USAGE);
     const items = await list(readPkg(pkg));
     for (const it of items) {
       process.stdout.write(`${String(it.size).padStart(10)}  ${String(it.compressed).padStart(8)}  ${it.path}\n`);

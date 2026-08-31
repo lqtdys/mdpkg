@@ -3,6 +3,6 @@
   "title": "被包含文档里的图片缺失也要报 E401（闭包必须展开 include）",
   "kind": "validate",
   "expect": {
-    "errorCode": "MDE-E401"
+    "errorCode": "MDPKG-E401"
   }
 }

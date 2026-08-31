@@ -33,7 +33,7 @@ export function sha256(data: Uint8Array): string {
 }
 
 export interface Manifest {
-  mde: 'mde';
+  format: 'mdpkg';
   spec_version: string;
   entrypoint?: string;
   encoding?: 'utf-8';
@@ -62,7 +62,7 @@ export function buildManifest(files: Map<string, Uint8Array>, prev?: Manifest): 
     });
 
   return {
-    mde: 'mde',
+    format: 'mdpkg',
     spec_version: SPEC_VERSION, // 不继承
     entrypoint: prev?.entrypoint ?? (files.has(DEFAULT_ENTRYPOINT) ? DEFAULT_ENTRYPOINT : undefined),
     encoding: prev?.encoding ?? 'utf-8',
