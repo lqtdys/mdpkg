@@ -102,18 +102,20 @@ h1,h2,h3,h4{margin:1.6em 0 .6em;line-height:1.3;font-weight:600}
 h1{padding-bottom:.3em;border-bottom:1px solid #d0d7de}
 h2{padding-bottom:.3em;border-bottom:1px solid #d8dee4}
 code{background:#f6f8fa;padding:.15em .35em;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
-pre{overflow-x:auto;padding:.9rem 1rem;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;line-height:1.5}
+p{margin:.7em 0}
+pre{overflow-x:auto;padding:1rem 1.2rem;margin:1.2em 0;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;line-height:1.6}
 pre code{background:none;padding:0;font-size:.9em}
-table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.95em;display:block;overflow-x:auto}
-th,td{border:1px solid #d0d7de;padding:.5rem .75rem;text-align:left}
+table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.95em;table-layout:fixed}
+th,td{border:1px solid #d0d7de;padding:.6rem .9rem;text-align:left;vertical-align:top;overflow-wrap:break-word;word-break:normal}
 th{background:#f6f8fa;font-weight:600}
 tbody tr:nth-child(2n){background:#fafbfc}
-blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:4px solid #d0d7de;color:#57606a;background:#f6f8fa;border-radius:0 6px 6px 0}
+blockquote{margin:1.2em 0;padding:.25rem 1rem;border-left:4px solid #d0d7de;color:#57606a;background:#f6f8fa;border-radius:0 6px 6px 0}
 img{max-width:100%}
 a{color:#0969da;text-decoration:none}
 a:hover{text-decoration:underline}
 hr{border:none;border-top:1px solid #d0d7de;margin:1.6rem 0}
 ul,ol{padding-left:1.6em}
+li{margin:.3em 0}
 </style>
 ${bodyHtml}
 `;
