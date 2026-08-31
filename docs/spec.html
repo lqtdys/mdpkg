@@ -343,11 +343,9 @@ li{margin:.3em 0}
 <h2>7. 扩展语法</h2>
 <h3>7.1 符号扩展</h3>
 <ol>
-<li>
-<p><strong>定位：</strong> 渲染期转换，作用于普通文本节点，<strong>不修改包内原始 Markdown</strong>。可配置，默认 <code>core</code>。</p>
-</li>
-<li>
-<p><strong>Core profile 映射表（v1 唯一强制集）：</strong></p>
+<li><strong>定位：</strong> 渲染期转换，作用于普通文本节点，<strong>不修改包内原始 Markdown</strong>。可配置，默认 <code>core</code>。</li>
+<li><strong>Core profile 映射表（v1 唯一强制集）：</strong></li>
+</ol>
 <table>
 <thead>
 <tr>
@@ -390,7 +388,7 @@ li{margin:.3em 0}
 </tr>
 </tbody>
 </table>
-</li>
+<ol start="3">
 <li>
 <p><strong>Extended profile：</strong> 不在 v1 实现范围。含 <code>...</code>→<code>…</code>、<code>1/2</code>→<code>½</code> 等分数/排版符号——它们对路径、命令、版本号、省略号误伤风险高，需更充分的边界数据后再定。映射表参考 PyMdown Extensions（MIT），采用时 MUST 保留其版权声明。</p>
 </li>
@@ -461,6 +459,8 @@ li{margin:.3em 0}
 </li>
 <li>
 <p><strong>硬限制（MUST，默认值必须存在）：</strong></p>
+</li>
+</ol>
 <table>
 <thead>
 <tr>
@@ -487,13 +487,9 @@ li{margin:.3em 0}
 </tr>
 </tbody>
 </table>
-</li>
-<li>
-<p><strong>循环检测（MUST）：</strong> 维护展开栈，同一文件在栈中重复出现即报 <code>MDPKG-E507</code>。</p>
-</li>
-<li>
-<p><strong>错误定位（SHOULD）：</strong> 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。</p>
-</li>
+<ol start="8">
+<li><strong>循环检测（MUST）：</strong> 维护展开栈，同一文件在栈中重复出现即报 <code>MDPKG-E507</code>。</li>
+<li><strong>错误定位（SHOULD）：</strong> 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。</li>
 </ol>
 <hr>
 <h2>8. 处理管线与命令行</h2>
