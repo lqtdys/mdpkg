@@ -13,7 +13,7 @@ code{background:#f6f8fa;padding:.15em .35em;border-radius:4px;font-family:ui-mon
 p{margin:.7em 0}
 pre{overflow-x:auto;padding:1rem 1.2rem;margin:1.2em 0;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;line-height:1.6}
 pre code{background:none;padding:0;font-size:.9em}
-table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.95em;table-layout:auto;display:block;overflow-x:auto}
+table{border-collapse:collapse;width:100%;margin:1.5em 0;font-size:.95em;table-layout:auto}
 th,td{border:1px solid #d0d7de;padding:.6rem .9rem;text-align:left;vertical-align:top;overflow-wrap:break-word;word-break:normal}
 th{background:#f6f8fa;font-weight:600}
 tbody tr:nth-child(2n){background:#fafbfc}
@@ -342,7 +342,11 @@ li{margin:.3em 0}
 <hr>
 <h2>7. 扩展语法</h2>
 <h3>7.1 符号扩展</h3>
+<ol>
+<li>
 <p><strong>定位：</strong> 渲染期转换，作用于普通文本节点，<strong>不修改包内原始 Markdown</strong>。可配置，默认 <code>core</code>。</p>
+</li>
+<li>
 <p><strong>Core profile 映射表（v1 唯一强制集）：</strong></p>
 <table>
 <thead>
@@ -386,37 +390,59 @@ li{margin:.3em 0}
 </tr>
 </tbody>
 </table>
+</li>
+<li>
 <p><strong>Extended profile：</strong> 不在 v1 实现范围。含 <code>...</code>→<code>…</code>、<code>1/2</code>→<code>½</code> 等分数/排版符号——它们对路径、命令、版本号、省略号误伤风险高，需更充分的边界数据后再定。映射表参考 PyMdown Extensions（MIT），采用时 MUST 保留其版权声明。</p>
+</li>
+<li>
 <p><strong>排除区（MUST NOT 转换）</strong>：代码块、行内代码、链接与图片的目标地址、HTML 属性、原始 HTML 块、自动链接。</p>
 <p>实现提示：在 mdast 上遍历 <code>text</code> 节点即可天然满足上式——code / inlineCode / link.url / html 均不是 <code>text</code> 节点，无需自研 tokenizer。</p>
+</li>
+<li>
 <p><strong>词边界规则（MUST）：</strong> 仅当匹配序列<strong>前邻</strong>为行首 / 空白 / 中文标点，且<strong>后邻</strong>为行尾 / 空白 / 中文标点时才转换，否则保留原文。</p>
 <ul>
 <li>例：<code>a&#x3C;=b</code> 不转换（前邻 <code>a</code>）；<code>步骤 1 --> 步骤 2</code> 转换。</li>
 <li>中文标点集：<code>，。、；：！？（）【】《》「」『』—…·</code></li>
 </ul>
+</li>
+<li>
 <p><strong>转义（MUST，实现方法已由 M0 探针验证）：</strong> <code>\</code> 前缀转义。<code>(tm)</code> 表示字面 <code>(tm)</code>。</p>
 <blockquote>
 <p><strong>实现陷阱（实测）：</strong> 不能按「Markdown 解析先消费反斜杠，符号转换再处理残余」的顺序实现。Markdown 解析阶段会把 <code>\(</code> 作为合法转义消费掉，text 节点中只剩 <code>(tm)</code>，<strong>转换器无法区分「用户写了 <code>(tm)</code> 想保留字面」与「用户写了 <code>(tm)</code> 想转换」</strong>。实测该顺序下 <code>(tm)</code> 被错误转换为 <code>™</code>。</p>
 </blockquote>
+</li>
+<li>
 <p><strong>MUST 采用哨兵法</strong>（实测可行）：</p>
 <ol>
 <li>解析<strong>前</strong>，把源码中 <code>\</code> + 符号 的序列替换为私有区哨兵（<code>U+E000</code>）+ 符号；</li>
 <li>正常解析与符号转换（哨兵是 Markdown 不解析的字符，且不满足词边界的前邻条件，故其后符号不被转换）；</li>
 <li>转换后<strong>删除哨兵</strong>，还原为字面符号。</li>
 </ol>
+</li>
+</ol>
 <p>成本约 3 行，无源码偏移映射，不受实体引用/多字节影响。可选替代（未采用）：取消 <code>\</code> 转义语法，改用行内代码 <code>`(tm)`</code> 作为保留字面的手段——零实现成本，但牺牲「在普通文本中保留字面且不显示为代码」的能力。</p>
 <h3>7.2 文件包含</h3>
+<ol>
+<li>
 <p><strong>语法：</strong></p>
-<pre><code class="language-markdown"> &#x26;lt;&#x26;lt;&#x26;lt; includes/chapter-1.md
- &#x26;lt;&#x26;lt;&#x26;lt; "includes/a b.md"
+<pre><code class="language-markdown">&#x26;lt;&#x26;lt;&#x26;lt; includes/chapter-1.md
+&#x26;lt;&#x26;lt;&#x26;lt; "includes/a b.md"
 </code></pre>
+</li>
+<li>
 <p><strong>触发规则（MUST）：</strong> 指令仅在<strong>列 0</strong>（行首无缩进）且整行匹配正则 <code>^&#x3C;&#x3C;&#x3C;\s*(.+?)\s*$</code> 时触发。</p>
 <blockquote>
 <p>规范<strong>不</strong>要求感知代码块上下文。理由：正确判断代码块需要预处理器自行实现围栏扫描（<code>```</code>/<code>~~~</code>/不等长围栏/4 空格缩进/列表内嵌套），这在「解析前展开」的阶段是不可能的，且必然导致实现分叉。
 <strong>已知局限：</strong> 列 0 的围栏代码块内若出现符合上式的行，会被展开。此为已知且可接受行为，规范不修复。缩进 ≥1 空格或写在代码块内容中的指令天然不触发。</p>
 </blockquote>
+</li>
+<li>
 <p><strong>路径解析：</strong> 路径相对<strong>包根</strong>解析，MUST 规范化后位于包根内。MUST NOT 访问包外文件、URL、其他 <code>.mdpkg</code> 包（<code>MDPKG-E501</code> / <code>MDPKG-E502</code>）。</p>
+</li>
+<li>
 <p><strong>目标类型：</strong> 仅包内 Markdown 文件。非 Markdown 目标 → <code>MDPKG-E503</code>。</p>
+</li>
+<li>
 <p><strong>相对基准与 URL 重写（MUST，消除实现分叉的关键规则）：</strong>
 被包含文件 <code>P</code>（包内路径）中的<strong>相对</strong>图片/资源引用 <code>R</code>，在展开时 MUST 以纯文本方式重写为 <code>normalize(dirname(P) + "/" + R)</code>。</p>
 <ul>
@@ -429,7 +455,11 @@ li{margin:.3em 0}
 </li>
 <li>重写发生在<strong>展开阶段</strong>（文本层），使展开后的文本自洽；<code>render</code> 与 <code>export --expanded</code> 共用同一份中间产物，渲染器无需再携带「当前文件上下文」。</li>
 </ul>
+</li>
+<li>
 <p><strong>嵌套：</strong> 允许嵌套包含，逐层递归执行同一管线（展开 → 解析 → 符号转换），深度计入上限。</p>
+</li>
+<li>
 <p><strong>硬限制（MUST，默认值必须存在）：</strong></p>
 <table>
 <thead>
@@ -457,8 +487,14 @@ li{margin:.3em 0}
 </tr>
 </tbody>
 </table>
+</li>
+<li>
 <p><strong>循环检测（MUST）：</strong> 维护展开栈，同一文件在栈中重复出现即报 <code>MDPKG-E507</code>。</p>
+</li>
+<li>
 <p><strong>错误定位（SHOULD）：</strong> 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。</p>
+</li>
+</ol>
 <hr>
 <h2>8. 处理管线与命令行</h2>
 <h3>8.1 渲染管线（顺序固定，MUST）</h3>
