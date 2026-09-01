@@ -2,10 +2,10 @@
 type: guide
 title: mdpkg 自动化配置指南
 captured_at: '2026-09-01T00:56:05.946Z'
+ingested_at: '2026-09-01T01:19:29.155Z'
+source_kind: put_page
 captured_via: capture-cli
 ingested_via: put_page
-ingested_at: '2026-09-01T00:56:09.822Z'
-source_kind: put_page
 ---
 
 # mdpkg 自动化配置指南
