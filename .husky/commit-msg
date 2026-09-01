@@ -1,0 +1,30 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Conventional Commits 格式校验
+# 格式: <type>(<scope>): <description>
+# 类型: feat|fix|docs|style|refactor|test|chore|ci|perf|build
+
+commit_msg=$(cat "$1")
+
+# 允许的类型
+allowed_types="^(feat|fix|docs|style|refactor|test|chore|ci|perf|build)"
+
+# 检查提交信息是否符合 Conventional Commits 格式
+if ! echo "$commit_msg" | grep -qE "$allowed_types"; then
+  echo "❌ Commit message does not follow Conventional Commits format."
+  echo ""
+  echo "Expected format: <type>(<scope>): <description>"
+  echo ""
+  echo "Allowed types: feat|fix|docs|style|refactor|test|chore|ci|perf|build"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add new feature"
+  echo "  fix(module): resolve bug"
+  echo "  docs: update documentation"
+  echo ""
+  echo "Your message: $commit_msg"
+  exit 1
+fi
+
+echo "✅ Commit message format is valid."

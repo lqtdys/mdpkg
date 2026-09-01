@@ -1,0 +1,24 @@
+{
+  "name": "mdpkg-monorepo",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "verify": "bash scripts/verify.sh"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts,cts}": [
+      "prettier --write"
+    ],
+    "*.md": [
+      "prettier --write"
+    ],
+    "*.{json,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.0.0"
+  }
+}
