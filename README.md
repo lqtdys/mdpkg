@@ -1,94 +1,95 @@
 # mdpkg — Markdown Enhanced
 
 <p align="center">
-  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/format-v1.0-blue" alt="格式版本 v1.0"></a>
-  <a href="https://github.com/jianxi-dev/mdpkg/actions"><img src="https://img.shields.io/github/actions/workflow/status/jianxi-dev/mdpkg/test.yml" alt="CI 测试"></a>
-  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/LICENSE"><img src="https://img.shields.io/badge/code-MIT-blue" alt="代码许可证 MIT"></a>
-  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/spec/mdpkg-format-spec.md"><img src="https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey" alt="规范许可证 CC BY 4.0"></a>
+  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/format-v1.0-blue" alt="Format version v1.0"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg/actions"><img src="https://img.shields.io/github/actions/workflow/status/jianxi-dev/mdpkg/test.yml" alt="CI tests"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/LICENSE"><img src="https://img.shields.io/badge/code-MIT-blue" alt="Code license MIT"></a>
+  <a href="https://github.com/jianxi-dev/mdpkg/blob/main/spec/mdpkg-format-spec.md"><img src="https://img.shields.io/badge/spec-CC%20BY%204.0-lightgrey" alt="Spec license CC BY 4.0"></a>
   <a href="https://github.com/jianxi-dev/mdpkg"><img src="https://img.shields.io/github/stars/jianxi-dev/mdpkg" alt="GitHub Stars"></a>
-  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/website-jianxi--dev.github.io%2Fmdpkg-orange" alt="官方站点"></a>
+  <a href="https://jianxi-dev.github.io/mdpkg/"><img src="https://img.shields.io/badge/website-jianxi--dev.github.io%2Fmdpkg-orange" alt="Official site"></a>
 </p>
 
-把一篇带图、分章节的 Markdown 文档，打包成**一个可校验、可离线打开、可重复构建的 `.mdpkg` 文件**。
+**English** · [简体中文](README.zh-CN.md)
+
+Package a Markdown document with images and chapters into **one `.mdpkg` file that is verifiable, opens offline, and builds reproducibly**.
 
 ```bash
-mdpkg pack   ./my-doc  -o doc.mdpkg     # 打包（图片随包）
-mdpkg validate doc.mdpkg                # 校验（结构 + 哈希 + 引用闭包）
-mdpkg render doc.mdpkg   -o doc.html    # 渲染（单文件自包含 HTML，图片已内联）
+mdpkg pack   ./my-doc  -o doc.mdpkg     # pack (resources go with the package)
+mdpkg validate doc.mdpkg                # validate (structure + hashes + reference closure)
+mdpkg render doc.mdpkg   -o doc.html    # render (self-contained single-file HTML, images inlined)
 ```
 
-## 它解决什么
+## What problem it solves
 
-普通 Markdown 的图片是引用，传一个文件就会丢附件。mdpkg 提供三项能力：
+In plain Markdown, images are references — send one file and you lose the attachments. mdpkg provides three capabilities:
 
-| 能力 | 说明 |
-|---|---|
-| 资源随包 | 用原生相对路径写 `![图](assets/a.png)`，打包时资源一起进包，缺失直接报错 |
-| 符号扩展 | `(tm)` → `™`、`-->` → `→`，只在普通文本中、渲染期生效，不改动原文 |
-| 文件包含 | `<<< includes/ch1.md`，解析前展开，支持嵌套与循环检测 |
+| Capability        | Description                                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Resource bundling | Write `![Image](assets/a.png)` with native relative paths; resources are packed together, a missing one fails loudly |
+| Symbol expansion  | `(tm)` → ™, `-->` → →; applied only to plain text at render time, the source text is never modified                  |
+| File inclusion    | `<<< includes/ch1.md`, expanded before parsing; supports nesting and cycle detection                                 |
 
-**「单文件」的准确含义**：交付与传输只有一个文件。它不意味着用文本编辑器打开 `.mdpkg` 就能看到完整渲染——那是 `unpack` / `export` / `render` 的职责。
+**What "single file" really means:** delivery and transfer involve exactly one file. It does not mean opening `.mdpkg` in a text editor shows the fully rendered document — that is the job of `unpack` / `export` / `render`.
 
-## 快速开始
+## Quick start
 
 ```bash
 cd packages/mdpkg && npm install
 
-# 一个最小例子
+# A minimal example
 mkdir -p demo/assets demo/includes
-printf '# 标题 (tm)\n\n![图](assets/a.png)\n\n<<< includes/ch1.md\n' > demo/document.md
-printf '第一章 (c) --> 结尾\n' > demo/includes/ch1.md
-head -c 5000 /dev/urandom > demo/assets/a.png      # 任意图片
+printf '# Title (tm)\n\n![Image](assets/a.png)\n\n<<< includes/ch1.md\n' > demo/document.md
+printf 'Chapter 1 (c) --> end\n' > demo/includes/ch1.md
+head -c 5000 /dev/urandom > demo/assets/a.png      # any image
 
 node src/cli.ts pack demo -o demo.mdpkg
 node src/cli.ts validate demo.mdpkg
-node src/cli.ts render demo.mdpkg -o demo.html        # 打开 demo.html 即可看
+node src/cli.ts render demo.mdpkg -o demo.html        # open demo.html to view
 ```
 
-要求 Node 22.18+（用内置类型剥离直接跑 `.ts`，无构建步骤）。
+Requires Node 22.18+ (runs `.ts` directly via built-in type stripping, no build step).
 
-## 命令
+## Commands
 
-| 命令 | 作用 |
-|---|---|
-| `pack <dir> -o out.mdpkg` | 打包。默认打包目录内全部文件；`--referenced-only` 只打引用闭包 |
-| `unpack <pkg> -o dir` | 解包，强制路径校验与解压上限 |
-| `list <pkg>` | 列条目（只读 header，不解压） |
-| `validate <pkg>` | Schema + size + sha256 + 引用闭包；统计外链数 |
-| `render <pkg> -o out.html` | 默认内联为单文件 HTML；资源 > 50 MB 自动降级 `--dir` |
-| `export --raw <pkg> -o dir` | 结构保持、文本一字不改 |
-| `export --expanded <pkg> -o dir` | include 已展开、相对路径已按包根重写（可被任何 MD 工具打开） |
-| `diff a.mdpkg b.mdpkg` | 解包双方后 `diff -ruN` |
+| Command                          | Purpose                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pack <dir> -o out.mdpkg`        | Pack. Defaults to all files in the directory; `--referenced-only` packs only the reference closure |
+| `unpack <pkg> -o dir`            | Unpack with mandatory path validation and decompression limits                                     |
+| `list <pkg>`                     | List entries (reads the header only, no decompression)                                             |
+| `validate <pkg>`                 | Schema + size + sha256 + reference closure; counts external links                                  |
+| `render <pkg> -o out.html`       | Defaults to inlined single-file HTML; auto-degrades to `--dir` when resources exceed 50 MB         |
+| `export --raw <pkg> -o dir`      | Preserves structure, text untouched                                                                |
+| `export --expanded <pkg> -o dir` | Includes expanded, relative paths rewritten against the package root (openable by any MD tool)     |
+| `diff a.mdpkg b.mdpkg`           | Unpacks both and runs `diff -ruN`                                                                  |
 
-## 格式
+## Format
 
-`.mdpkg` 是**标准 ZIP**，根目录含 `manifest.json`（版本、入口、资源索引含 sha256）。
+`.mdpkg` is a **standard ZIP** whose root contains `manifest.json` (version, entrypoint, and a resource index including sha256).
 
-- 可重复构建：mtime 固定 `1980-01-01`、条目按路径升序、同输入必产同字节 → Git 友好、可缓存
-- 完整性：size + sha256 用于检测**损坏/误传/跨平台字节漂移**；**不防篡改**（manifest 与资源同在包内，防篡改需签名，v1 不提供）
-- 降级：解包即标准 Markdown；`<<<` 在不支持的渲染器里是可见文本
+- Reproducible builds: mtime fixed to `1980-01-01`, entries sorted by path ascending, identical input always produces identical bytes → Git-friendly, cacheable
+- Integrity: size + sha256 detect corruption / misdelivery / cross-platform byte drift; **not** tamper-proof (manifest and resources live in the same package; tamper-resistance requires signing, not provided in v1)
+- Graceful degradation: unpacking yields standard Markdown; `<<<` is visible text in renderers without support
 
-完整规范见 [`spec/mdpkg-format-spec.md`](spec/mdpkg-format-spec.md)。
+Full specification: [`spec/mdpkg-format-spec.md`](spec/mdpkg-format-spec.md) (Chinese, source of truth) · English translation [`spec/mdpkg-format-spec.en.md`](spec/mdpkg-format-spec.en.md) · rendered spec page [spec.html](https://jianxi-dev.github.io/mdpkg/spec.html)
 
-## 测试
+## Tests
 
 ```bash
 cd packages/mdpkg && node --test test/*.test.ts
-# 78 个用例：36 个实现单测 + 42 个 conformance fixture（spec/fixtures/）
+# 81 tests: 38 implementation unit tests + 43 conformance fixtures (spec/fixtures/)
 ```
 
-fixture 是与实现无关的数据（`case.json` + `input/`），任何语言的实现跑通同一批用例即视为合规。
+Fixtures are implementation-agnostic data (`case.json` + `input/`); any implementation passing the same set is considered conformant.
 
-## 定位与已知缺口
+## Positioning and known gaps
 
-**先自用，后标准化。** 这是一个正在被真实使用验证的格式，不是已确立的标准。若自用 3 个月后没有第二个使用者或实现者，它应降级为内部工具，不再投入规范治理成本。
+**Self-use first, standardization later.** This is a format being validated through real use, not an established standard. If after 3 months of self-use there is no second user or implementer, it should be demoted to an internal tool and spec-governance effort stops.
 
-已知缺口：
-- `--fetch`（下载外链）未提供——会引入网络依赖与 SSRF 面，与「不下载、可预测」立场冲突
-- `unpack-roundtrip` fixture 未落盘（已由单测的 diff 往返覆盖）
-- 无 VS Code 插件（在采用可行性验证前不启动）
+Known gaps:
 
-## 许可证
+- `--fetch` (downloading external links) is not provided — it would introduce network dependencies and an SSRF surface, conflicting with the "no download, predictable" stance
+- No VS Code extension (not started until adoption feasibility is validated)
 
-规范文本 CC BY 4.0；实现代码 MIT；测试向量（`spec/fixtures/`）CC0，可无摩擦复制。
-符号映射表参考 PyMdown Extensions（MIT）。
+## License
+
+Spec text CC BY 4.0; implementation code MIT; test vectors (`spec/fixtures/`) CC0 for frictionless copying. The symbol mapping table references PyMdown Extensions (MIT).
