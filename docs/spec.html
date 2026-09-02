@@ -1,7 +1,8 @@
 <!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>spec.mdpkg</title>
+<title>mdpkg Format Specification v1.0</title>
 <link rel="icon" href="data:,">
 <style>
 :root{color-scheme:light}
@@ -25,126 +26,131 @@ hr{border:none;border-top:1px solid #d0d7de;margin:1.6rem 0}
 ul,ol{padding-left:1.6em}
 li{margin:.3em 0}
 </style>
-<h1>mdpkg Format Specification v1.0（初稿）</h1>
+<style>
+.lang-switch{max-width:980px;margin:1.5rem auto 0;padding:0 1.25rem;text-align:right;font-size:.92em;color:#57606a}
+.lang-switch a{color:#0969da;text-decoration:none}
+.lang-switch a:hover{text-decoration:underline}
+</style><nav class="lang-switch"><strong>English</strong> · <a href="spec.zh.html">简体中文</a></nav>
+<h1>mdpkg Format Specification v1.0 (Draft)</h1>
 <blockquote>
-<p>状态：<strong>Phase 0A 初稿</strong>。本文件是 <code>PLAN_MERGED.md</code> 的可执行展开；凡本文与 <code>PLAN_MERGED.md</code> 冲突，以本文为准并回写 <code>PLAN_MERGED.md</code>。
-关键字按 RFC 2119 解释：MUST / MUST NOT / SHOULD / SHOULD NOT / MAY。
-规范文本 CC BY 4.0；测试向量（附录 B）CC0。</p>
+<p>Status: <strong>Phase 0A Draft</strong>. This document is the executable expansion of <code>PLAN_MERGED.md</code>; where it conflicts with <code>PLAN_MERGED.md</code>, this document takes precedence and <code>PLAN_MERGED.md</code> should be updated accordingly.
+Keywords are interpreted per RFC 2119: MUST / MUST NOT / SHOULD / SHOULD NOT / MAY.
+Specification text is CC BY 4.0; conformance fixtures (Appendix B) are CC0.</p>
 </blockquote>
 <hr>
-<h2>1. 范围与术语</h2>
-<p><strong>mdpkg</strong>（Markdown Enhanced）是一种以标准 ZIP 为容器、以 <code>manifest.json</code> 为元数据源的 Markdown 文档包格式，用于<strong>单文件交付</strong>：一个 <code>.mdpkg</code> 文件包含主文档、全部引用资源与可包含的子文档。</p>
-<p>v1 提供三项能力：资源随包（P0）、符号扩展（P1）、包内文件包含（P2）。</p>
+<h2>1. Scope and Terminology</h2>
+<p><strong>mdpkg</strong> (Markdown Enhanced) is a Markdown document package format that uses a standard ZIP archive as its container and <code>manifest.json</code> as its metadata source, designed for <strong>single-file delivery</strong>: a single <code>.mdpkg</code> file contains the main document, all referenced resources, and any includable sub-documents.</p>
+<p>v1 provides three capabilities: resource bundling (P0), symbol expansion (P1), and in-package file inclusion (P2).</p>
 <table>
 <thead>
 <tr>
-<th>术语</th>
-<th>定义</th>
+<th>Term</th>
+<th>Definition</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>包（package）</td>
-<td>一个 <code>.mdpkg</code> 文件，即一个符合本规范的 ZIP 归档</td>
+<td>package</td>
+<td>A <code>.mdpkg</code> file, i.e., a ZIP archive conforming to this specification</td>
 </tr>
 <tr>
-<td>包根（package root）</td>
-<td>ZIP 内的逻辑根目录，所有包内路径相对它解析</td>
+<td>package root</td>
+<td>The logical root directory within the ZIP; all in-package paths are resolved relative to it</td>
 </tr>
 <tr>
-<td>入口（entrypoint）</td>
-<td>主 Markdown 文档的包内路径，<code>manifest.entrypoint</code> 为唯一真源</td>
+<td>entrypoint</td>
+<td>The in-package path of the main Markdown document; <code>manifest.entrypoint</code> is the single source of truth</td>
 </tr>
 <tr>
-<td>资源（resource）</td>
-<td>包内除 <code>manifest.json</code> 外的任何文件，含入口文档本身</td>
+<td>resource</td>
+<td>Any file within the package other than <code>manifest.json</code>, including the entrypoint document itself</td>
 </tr>
 <tr>
-<td>引用闭包</td>
-<td>从入口出发，经 include 展开后可达的全部本地引用集合</td>
+<td>reference closure</td>
+<td>The set of all local references reachable from the entrypoint after include expansion</td>
 </tr>
 <tr>
-<td>展开（expansion）</td>
-<td>include 指令被替换为其目标文件内容后的文本状态</td>
+<td>expansion</td>
+<td>The textual state after an include directive has been replaced by its target file's content</td>
 </tr>
 </tbody>
 </table>
-<p><strong>「单文件」的精确含义：</strong> 交付与传输只有一个文件。它<strong>不</strong>表示 Markdown 内容以 Base64 内嵌，也<strong>不</strong>表示普通文本编辑器打开 <code>.mdpkg</code> 即可获得完整渲染。</p>
+<p><strong>Precise meaning of "single file":</strong> Only one file is delivered and transmitted. It does <strong>not</strong> mean Markdown content is embedded as Base64, nor does it mean opening <code>.mdpkg</code> in a plain text editor yields a complete rendering.</p>
 <hr>
-<h2>2. 容器格式</h2>
-<h3>2.1 基本约束</h3>
+<h2>2. Container Format</h2>
+<h3>2.1 Basic Constraints</h3>
 <ol>
-<li>包 MUST 是有效的 ZIP 归档（APPNOTE.TXT 6.3.x 兼容）。</li>
-<li>包根 MUST 直接包含 <code>manifest.json</code>。</li>
-<li>包 MUST NOT 包含目录条目以外的绝对路径、<code>..</code> 段、符号链接、硬链接条目。</li>
-<li>同一包内 MUST NOT 存在两个规范化后相同的路径。</li>
-<li>所有文本（Markdown / JSON / include 源文件 / 文本附件）MUST 为 UTF-8，MUST NOT 含 BOM，MUST NOT 含 U+0000。</li>
-<li>路径分隔符统一为 <code>/</code>。</li>
+<li>A package MUST be a valid ZIP archive (APPNOTE.TXT 6.3.x compatible).</li>
+<li>The package root MUST directly contain <code>manifest.json</code>.</li>
+<li>A package MUST NOT contain absolute paths other than directory entries, <code>..</code> segments, symbolic links, or hard-link entries.</li>
+<li>A package MUST NOT contain two paths that normalize to the same value.</li>
+<li>All text (Markdown / JSON / include source files / text attachments) MUST be UTF-8, MUST NOT contain a BOM, and MUST NOT contain U+0000.</li>
+<li>Path separators MUST uniformly be <code>/</code>.</li>
 </ol>
-<h3>2.2 识别</h3>
-<p>一个文件是 mdpkg 包，当且仅当全部成立：</p>
+<h3>2.2 Identification</h3>
+<p>A file is an mdpkg package if and only if all of the following hold:</p>
 <ul>
-<li>扩展名为 <code>.mdpkg</code>（不区分大小写）；且</li>
-<li>是有效 ZIP；且</li>
-<li>包根含 <code>manifest.json</code>；且</li>
-<li><code>manifest.json</code> 可解析为 JSON 对象，且 <code>format</code> 字段等于字符串 <code>"mdpkg"</code>，且 <code>spec_version</code> 存在且主版本号为实现所支持。</li>
+<li>Its extension is <code>.mdpkg</code> (case-insensitive); and</li>
+<li>It is a valid ZIP; and</li>
+<li>The package root contains <code>manifest.json</code>; and</li>
+<li><code>manifest.json</code> can be parsed as a JSON object, the <code>format</code> field equals the string <code>"mdpkg"</code>, and <code>spec_version</code> exists with a major version supported by the implementation.</li>
 </ul>
-<p>任一条件不成立 → 实现 MUST 按「普通 ZIP」处理，<strong>不得</strong>强行当作 mdpkg，也<strong>不得</strong>猜测修复。</p>
-<h3>2.3 压缩策略</h3>
+<p>If any condition fails → the implementation MUST treat it as a "plain ZIP", MUST NOT force mdpkg handling, and MUST NOT attempt guesswork repair.</p>
+<h3>2.3 Compression Strategy</h3>
 <table>
 <thead>
 <tr>
-<th>内容</th>
-<th>方法</th>
+<th>Content</th>
+<th>Method</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Markdown / JSON / 纯文本</td>
-<td>DEFLATE（级别 9）</td>
+<td>Markdown / JSON / plain text</td>
+<td>DEFLATE (level 9)</td>
 </tr>
 <tr>
-<td>PNG / JPEG / GIF / WebP / 音视频 / PDF / 已压缩归档</td>
-<td>Store（不压缩）</td>
+<td>PNG / JPEG / GIF / WebP / audio &#x26; video / PDF / already-compressed archives</td>
+<td>Store (no compression)</td>
 </tr>
 <tr>
-<td>其他</td>
-<td>实现 MAY 自行决定，SHOULD 默认 Store</td>
+<td>Other</td>
+<td>The implementation MAY decide; SHOULD default to Store</td>
 </tr>
 </tbody>
 </table>
-<p>理由：已压缩媒体二次压缩无收益且浪费 CPU。</p>
-<h3>2.4 可重复构建（MUST）</h3>
-<p>同一输入目录两次打包 MUST 产生<strong>字节相同</strong>的包。为此：</p>
+<p>Rationale: Re-compressing already-compressed media yields no benefit and wastes CPU.</p>
+<h3>2.4 Reproducible Builds (MUST)</h3>
+<p>Packing the same input directory twice MUST produce <strong>byte-identical</strong> packages. To achieve this:</p>
 <ol>
-<li>ZIP 条目顺序 MUST 为包内路径的 <strong>Unicode 码位升序</strong>（<code>manifest.json</code> 排在最前）。
+<li>ZIP entry order MUST follow the <strong>Unicode code point ascending order</strong> of in-package paths (<code>manifest.json</code> sorts first).
 <ul>
-<li>实测（fflate）：条目顺序完全由调用方插入顺序决定，库不会自动排序；<strong>打乱插入顺序即产生不同字节</strong>。实现 MUST 自行排序后再插入。</li>
+<li>Measured (fflate): entry order is entirely determined by the caller's insertion order; the library does not auto-sort. <strong>Scrambling insertion order produces different bytes</strong>. The implementation MUST sort entries before insertion.</li>
 </ul>
 </li>
-<li>所有条目时间戳 MUST 为 <code>1980-01-01 00:00:00</code>（ZIP 可表示的最早时间）。实测 <code>unzip -l</code> 正确显示为 <code>01-01-1980</code>。</li>
-<li>普通文件权限位 MUST 为 <code>0644</code>，目录 MUST 为 <code>0755</code>。</li>
-<li>MUST NOT 写入本机绝对路径、UID/GID、扩展属性、注释字段。</li>
-<li>生成时间 MUST NOT 进入 <code>manifest.json</code>。</li>
-<li>实现 MAY 提供 <code>--preserve-mtime</code>；启用时本条整体失效，实现 MUST 在输出中提示「已放弃可重复构建」。</li>
+<li>All entry timestamps MUST be <code>1980-01-01 00:00:00</code> (the earliest time representable in ZIP). Measured: <code>unzip -l</code> correctly displays <code>01-01-1980</code>.</li>
+<li>Regular file permission bits MUST be <code>0644</code>; directories MUST be <code>0755</code>.</li>
+<li>The implementation MUST NOT write the local machine's absolute path, UID/GID, extended attributes, or comment fields.</li>
+<li>Generation time MUST NOT enter <code>manifest.json</code>.</li>
+<li>The implementation MAY provide <code>--preserve-mtime</code>; when enabled, this entire clause is void, and the implementation MUST output a message indicating "reproducible build abandoned".</li>
 </ol>
 <blockquote>
-<p>本条保证的是「同一输入 → 同一字节」，用于缓存、签名与误改动检测。它<strong>不</strong>使 ZIP 在 Git 中产生可读 diff；版本间差异请用 <code>mdpkg diff</code>（§8.7）。</p>
+<p>This clause guarantees "same input → same bytes", for caching, signing, and accidental-modification detection. It does <strong>not</strong> make ZIP produce readable diffs in Git; for version-to-version comparison, use <code>mdpkg diff</code> (§8.7).</p>
 </blockquote>
 <hr>
-<h2>3. 目录结构</h2>
+<h2>3. Directory Layout</h2>
 <pre><code class="language-text">example.mdpkg
-├── manifest.json        # 必需
-├── document.md          # 入口，缺省名；实际路径以 manifest.entrypoint 为准
-├── assets/              # 惯例，非强制
+├── manifest.json        # required
+├── document.md          # entrypoint, default name; actual path per manifest.entrypoint
+├── assets/              # convention, not mandatory
 │   ├── images/
 │   └── files/
-└── includes/            # 惯例，非强制
+└── includes/            # convention, not mandatory
 </code></pre>
-<p>规范只强制 <code>manifest.json</code> 的存在与位置。其余目录布局是惯例；实现 MUST NOT 依赖惯例布局做判断，一律以 <code>manifest.entrypoint</code> 与实际路径为准。</p>
+<p>The specification mandates only the existence and location of <code>manifest.json</code>. Other directory layouts are conventions; the implementation MUST NOT rely on convention layouts for any judgment and MUST always use <code>manifest.entrypoint</code> and actual paths.</p>
 <hr>
 <h2>4. <code>manifest.json</code></h2>
-<h3>4.1 字段</h3>
+<h3>4.1 Fields</h3>
 <pre><code class="language-json">{
   "format": "mdpkg",
   "spec_version": "1.0",
@@ -175,10 +181,10 @@ li{margin:.3em 0}
 <table>
 <thead>
 <tr>
-<th>字段</th>
-<th>类型</th>
-<th>必需</th>
-<th>说明</th>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
@@ -186,173 +192,175 @@ li{margin:.3em 0}
 <td><code>format</code></td>
 <td>string</td>
 <td>✅</td>
-<td>格式标识，恒为 <code>"mdpkg"</code></td>
+<td>Format identifier, always <code>"mdpkg"</code></td>
 </tr>
 <tr>
 <td><code>spec_version</code></td>
 <td>string</td>
 <td>✅</td>
-<td><code>"&#x3C;major>.&#x3C;minor>"</code>，本规范为 <code>"1.0"</code></td>
+<td><code>"&#x3C;major>.&#x3C;minor>"</code>; this specification is <code>"1.0"</code></td>
 </tr>
 <tr>
 <td><code>entrypoint</code></td>
 <td>string</td>
 <td>❌</td>
-<td>入口文档包内路径；省略时取 <code>"document.md"</code></td>
+<td>In-package path of the entrypoint document; defaults to <code>"document.md"</code> when omitted</td>
 </tr>
 <tr>
 <td><code>encoding</code></td>
 <td>string</td>
 <td>❌</td>
-<td>恒为 <code>"utf-8"</code>；省略时同</td>
+<td>Always <code>"utf-8"</code>; same when omitted</td>
 </tr>
 <tr>
 <td><code>extensions</code></td>
 <td>object</td>
 <td>❌</td>
-<td>作者意图：<code>symbols</code> ∈ <code>off|core|extended</code>（默认 <code>core</code>）、<code>include</code> ∈ <code>true|false</code>（默认 <code>true</code>）</td>
+<td>Author intent: <code>symbols</code> ∈ <code>off|core|extended</code> (default <code>core</code>), <code>include</code> ∈ <code>true|false</code> (default <code>true</code>)</td>
 </tr>
 <tr>
 <td><code>extensions_required</code></td>
 <td>string[]</td>
 <td>❌</td>
-<td>硬依赖列表；渲染器不支持其中任何一项 MUST 报错退出，不得静默降级</td>
+<td>Hard dependency list; if the renderer does not support any listed item, it MUST error and exit; silent degradation is forbidden</td>
 </tr>
 <tr>
 <td><code>resources</code></td>
 <td>array</td>
 <td>✅</td>
-<td>资源索引，见下</td>
+<td>Resource index, see below</td>
 </tr>
 <tr>
 <td><code>resources[].path</code></td>
 <td>string</td>
 <td>✅</td>
-<td>包内相对路径，已 NFC 归一化</td>
+<td>In-package relative path, NFC-normalized</td>
 </tr>
 <tr>
 <td><code>resources[].media_type</code></td>
 <td>string</td>
 <td>✅</td>
-<td>IANA 媒体类型；未知用 <code>application/octet-stream</code></td>
+<td>IANA media type; use <code>application/octet-stream</code> for unknown types</td>
 </tr>
 <tr>
 <td><code>resources[].size</code></td>
 <td>integer</td>
 <td>✅</td>
-<td>未压缩字节数</td>
+<td>Uncompressed byte count</td>
 </tr>
 <tr>
 <td><code>resources[].sha256</code></td>
 <td>string</td>
 <td>✅</td>
-<td>小写 64 位十六进制</td>
+<td>Lowercase 64-character hex</td>
 </tr>
 <tr>
 <td><code>resources[].source_url</code></td>
 <td>string</td>
 <td>❌</td>
-<td>仅当该资源由外链下载得到时存在</td>
+<td>Present only when the resource was downloaded from an external URL</td>
 </tr>
 </tbody>
 </table>
-<p><code>resources</code> MUST 覆盖包内除 <code>manifest.json</code> 外的<strong>全部</strong>文件，<strong>包含入口文档自身</strong>。
-<code>resources</code> 顺序 MUST 按 <code>path</code> 码位升序。</p>
-<h3>4.2 字段归属（编辑-重打包周期的关键规则）</h3>
-<p>用户解包 → 编辑 → 重打包时，<code>mdpkg pack</code> MUST 按下表处理：</p>
+<p><code>resources</code> MUST cover <strong>all</strong> files in the package other than <code>manifest.json</code>, <strong>including the entrypoint document itself</strong>.
+<code>resources</code> order MUST follow <code>path</code> code point ascending order.</p>
+<h3>4.2 Field Ownership (Key Rule for the Edit–Repack Cycle)</h3>
+<p>When a user unpacks → edits → repacks, <code>mdpkg pack</code> MUST handle fields per the table below:</p>
 <table>
 <thead>
 <tr>
-<th>字段</th>
-<th>归属</th>
-<th>重打包行为</th>
+<th>Field</th>
+<th>Ownership</th>
+<th>Repack Behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>resources[]</code>、<code>size</code>、<code>sha256</code>、<code>media_type</code></td>
-<td>机器事实</td>
-<td><strong>每次重算</strong>，覆盖原值</td>
+<td><code>resources[]</code>, <code>size</code>, <code>sha256</code>, <code>media_type</code></td>
+<td>Machine fact</td>
+<td><strong>Recomputed each time</strong>, overwriting prior values</td>
 </tr>
 <tr>
-<td><code>entrypoint</code>、<code>extensions</code>、<code>extensions_required</code>、<code>encoding</code></td>
-<td>作者意图</td>
-<td><strong>存在则保留</strong>，缺失才取默认值</td>
+<td><code>entrypoint</code>, <code>extensions</code>, <code>extensions_required</code>, <code>encoding</code></td>
+<td>Author intent</td>
+<td><strong>Preserved if present</strong>; defaults apply only when missing</td>
 </tr>
 <tr>
 <td><code>spec_version</code></td>
-<td>工具版本</td>
-<td>由工具决定，<strong>不继承</strong></td>
+<td>Tool version</td>
+<td>Decided by the tool; <strong>not inherited</strong></td>
 </tr>
 <tr>
 <td><code>resources[].source_url</code></td>
-<td>历史来源</td>
-<td>保留</td>
+<td>Historical origin</td>
+<td>Preserved</td>
 </tr>
 </tbody>
 </table>
-<p>理由：把两类字段混为一谈，会在重打包时把作者配置冲掉，或让过期哈希永久驻留。</p>
+<p>Rationale: Conflating the two categories of fields will either overwrite author configuration on repack or let stale hashes persist indefinitely.</p>
 <hr>
-<h2>5. 路径与编码规则</h2>
+<h2>5. Path and Encoding Rules</h2>
 <ol>
-<li>路径 MUST NOT 以 <code>/</code> 开头，MUST NOT 含 <code>.</code> 或 <code>..</code> 段，MUST NOT 含空段（<code>//</code>），MUST NOT 含 U+0000，MUST NOT 含 Windows 盘符或保留设备名。</li>
-<li>路径与文件名在入库前 MUST 统一 <strong>Unicode NFC</strong> 归一化。</li>
-<li>归一化后相同的两个路径（含仅大小写不同者）MUST 在打包阶段被拒绝（错误码 <code>MDPKG-E201</code>）。
+<li>Paths MUST NOT start with <code>/</code>, MUST NOT contain <code>.</code> or <code>..</code> segments, MUST NOT contain empty segments (<code>//</code>), MUST NOT contain U+0000, and MUST NOT contain Windows drive letters or reserved device names.</li>
+<li>Paths and filenames MUST be unified to <strong>Unicode NFC</strong> normalization before insertion.</li>
+<li>Two paths that are identical after normalization (including those differing only in case) MUST be rejected at pack time (error code <code>MDPKG-E201</code>).
 <ul>
-<li>理由：macOS(APFS, NFD) 与 Linux(NFC) 下同一逻辑文件名字节不同，不归一化会导致 manifest 的 SHA-256 跨平台失配、<code>validate</code> 全量误报。</li>
+<li>Rationale: The same logical filename has different bytes on macOS (APFS, NFD) vs. Linux (NFC). Without normalization, manifest SHA-256 values mismatch across platforms and <code>validate</code> produces false positives.</li>
 </ul>
 </li>
-<li>路径长度 MUST NOT 超过 1024 字节（UTF-8）。</li>
-<li>实现 MUST 拒绝符号链接与硬链接条目（<code>MDPKG-E601</code>）。</li>
+<li>Path length MUST NOT exceed 1024 bytes (UTF-8).</li>
+<li>The implementation MUST reject symbolic-link and hard-link entries (<code>MDPKG-E601</code>).</li>
 </ol>
 <hr>
-<h2>6. 资源引用与打包</h2>
-<h3>6.1 文档内引用</h3>
-<p>文档 MUST 使用<strong>包内相对路径</strong>引用资源：</p>
-<pre><code class="language-markdown">![产品截图](assets/images/product.png)
+<h2>6. Resource References and Packing</h2>
+<h3>6.1 In-Document References</h3>
+<p>Documents MUST use <strong>in-package relative paths</strong> to reference resources:</p>
+<pre><code class="language-markdown">![Product screenshot](assets/images/product.png)
 </code></pre>
-<p>实现 MUST NOT 要求或生成 <code>mdpkg://</code> 协议。理由：解压/导出后必须仍是标准 Markdown，<code>mdpkg://</code> 会破坏降级路径。</p>
-<p>外部 URL（<code>http://</code>、<code>https://</code>、协议相对 <code>//</code>）默认<strong>保留为外链</strong>，不下载。</p>
-<h3>6.2 <code>mdpkg pack</code> 行为</h3>
+<p>The implementation MUST NOT require or generate an <code>mdpkg://</code> protocol. Rationale: After unpack/export, the result must still be standard Markdown; <code>mdpkg://</code> would break the graceful degradation path.</p>
+<p>External URLs (<code>http://</code>, <code>https://</code>, protocol-relative <code>//</code>) are <strong>kept as external links</strong> by default and are not downloaded.</p>
+<h3>6.2 <code>mdpkg pack</code> Behavior</h3>
 <pre><code>mdpkg pack &#x3C;dir> [-o out.mdpkg] [--entry &#x3C;path>] [--referenced-only] [--fetch] [--preserve-mtime]
 </code></pre>
 <ol>
-<li>入口：<code>--entry</code> 指定；否则 <code>dir/document.md</code>；否则若 <code>dir/manifest.json</code> 存在则继承其 <code>entrypoint</code>。三者皆无 → <code>MDPKG-E301</code>。</li>
-<li><strong>默认行为：打包 <code>dir</code> 内全部文件</strong>（排除输出文件自身）。
+<li>Entrypoint: specified by <code>--entry</code>; otherwise <code>dir/document.md</code>; otherwise, if <code>dir/manifest.json</code> exists, inherit its <code>entrypoint</code>. If all three are absent → <code>MDPKG-E301</code>.</li>
+<li><strong>Default behavior: pack all files in <code>dir</code></strong> (excluding the output file itself).
 <ul>
-<li>理由：全量打包的代码量比「精准扫描」少一个数量级，且不会漏图；孤儿资源只是体积代价，缺图是正确性缺陷，两者风险不对称。</li>
+<li>Rationale: Full-pack code is an order of magnitude smaller than "precise scanning" and never misses images; orphan resources are only a cost in size, while missing images is a correctness defect. The two risks are asymmetric.</li>
 </ul>
 </li>
-<li><code>--referenced-only</code>：仅打包引用闭包（入口 + include 传递展开后可达的全部本地引用）+ 入口 + <code>manifest.json</code>。</li>
-<li><strong>引用校验（两种模式下都执行）</strong>：从入口出发遍历 include 闭包，收集全部本地引用。任何被引用的本地文件不存在于待打包集合 → <strong>报错退出</strong>（<code>MDPKG-E401</code>），不静默跳过。
+<li><code>--referenced-only</code>: pack only the reference closure (entrypoint + all local references reachable after transitive include expansion of the entrypoint) + entrypoint + <code>manifest.json</code>.</li>
+<li><strong>Reference validation (executed in both modes):</strong> traverse the include closure starting from the entrypoint and collect all local references. Any referenced local file not present in the set to be packed → <strong>error and exit</strong> (<code>MDPKG-E401</code>); silent skipping is forbidden.
 <ul>
-<li><strong>什么算「引用」</strong>：图片与嵌入附件（pdf / zip 等）是必须随包的资源；<strong>到本地 Markdown 的链接属于文档间导航，不算附件，不强制打包</strong>——否则打包一篇 README 会连带要求整个仓库。</li>
-<li><strong>收集必须基于 Markdown AST，不得用正则扫全文</strong>：文档中常出现含 Markdown 语法的<strong>示例代码块</strong>（如教程里的 <code>![图](assets/a.png)</code>），正则会把示例当作真实引用并误报 <code>MDPKG-E401</code>。用 AST 时只有 <code>image</code> / <code>link</code> 节点的 URL 算引用，代码块与行内代码天然被排除——这与符号扩展共用同一套「排除区」判断。</li>
-<li>实测（dogfood）：打包项目自身 README 时，正则实现两次误报（先报示例里的 <code>assets/a.png</code>，再报真实链接 <code>spec/mdpkg-format-spec.md</code>），改 AST 后一次通过。</li>
-<li>这一步 MUST 走 include 传递闭包；只扫入口文档会漏掉被包含子文档里的图片，直接违反 P0「附件不丢失」。</li>
+<li><strong>What counts as a "reference":</strong> Images and embedded attachments (pdf / zip, etc.) are resources that must be bundled; <strong>links to local Markdown files are inter-document navigation, not attachments, and are not forced to be packed</strong>—otherwise packing one README would pull in the entire repository.</li>
+<li><strong>Collection MUST be based on the Markdown AST; scanning the full text with regex is forbidden:</strong> Documents frequently contain <strong>example code blocks</strong> with Markdown syntax (e.g., a tutorial's <code>![fig](assets/a.png)</code>). Regex treats examples as real references and falsely reports <code>MDPKG-E401</code>. With AST, only <code>image</code> / <code>link</code> node URLs count as references; code blocks and inline code are naturally excluded—this shares the same "exclusion zone" logic as symbol expansion.</li>
+<li>Measured (dogfood): when packing the project's own README, the regex implementation produced two false positives (first the example's <code>assets/a.png</code>, then the real link <code>spec/mdpkg-format-spec.md</code>); after switching to AST, it passed on the first try.</li>
+<li>This step MUST traverse the transitive include closure; scanning only the entrypoint document misses images in included sub-documents, directly violating P0's "attachments must not be lost" guarantee.</li>
 </ul>
 </li>
-<li><strong>孤儿资源</strong>（在包内但未被任何文档引用）→ warning，不报错。</li>
-<li><code>--fetch</code>：显式下载外链并改写为包内相对路径，在 <code>resources[].source_url</code> 记录来源。默认关闭。
+<li><strong>Orphan resources</strong> (in the package but not referenced by any document) → warning, not an error.</li>
+<li><code>--fetch</code>: explicitly download external links and rewrite them to in-package relative paths, recording the origin in <code>resources[].source_url</code>. Off by default.
 <ul>
-<li><strong>参考实现 v1 未提供此开关</strong>：下载外链要引入网络依赖、超时/重试与 SSRF 面（内网地址、重定向到 <code>169.254.169.254</code> 等），与 v1「不下载、可预测」的立场冲突。外链一律保留原样，由 <code>validate</code> 统计数量并提示「本包含 N 个外部引用，不可完全离线」。若将来提供，必须带协议白名单（仅 http/https）、重定向上限、大小上限与内网地址拒绝。</li>
+<li><strong>Reference implementation v1 does not provide this switch:</strong> downloading external links introduces network dependencies, timeout/retry, and an SSRF surface (internal addresses, redirects to <code>169.254.169.254</code>, etc.), conflicting with v1's "no download, predictable" stance. External links are kept as-is; <code>validate</code> counts them and reports "this package contains N external references and cannot be fully offline". If provided in the future, it MUST include a protocol whitelist (http/https only), redirect limit, size limit, and internal-address rejection.</li>
 </ul>
 </li>
 </ol>
 <hr>
-<h2>7. 扩展语法</h2>
-<h3>7.1 符号扩展</h3>
+<h2>7. Extension Syntax</h2>
+<h3>7.1 Symbol Expansion</h3>
 <ol>
-<li><strong>定位：</strong> 渲染期转换，作用于普通文本节点，<strong>不修改包内原始 Markdown</strong>。可配置，默认 <code>core</code>。</li>
-<li><strong>Core profile 映射表（v1 唯一强制集）：</strong></li>
-</ol>
+<li>
+<p><strong>Positioning:</strong> A render-time transformation, applied to plain text nodes; it does <strong>not</strong> modify the original Markdown in the package. Configurable, default <code>core</code>.</p>
+</li>
+<li>
+<p><strong>Core profile mapping table (the only mandatory set in v1):</strong></p>
 <table>
 <thead>
 <tr>
-<th>输入</th>
-<th>输出</th>
-<th>输入</th>
-<th>输出</th>
+<th>Input</th>
+<th>Output</th>
+<th>Input</th>
+<th>Output</th>
 </tr>
 </thead>
 <tbody>
@@ -388,185 +396,187 @@ li{margin:.3em 0}
 </tr>
 </tbody>
 </table>
-<ol start="3">
-<li>
-<p><strong>Extended profile：</strong> 不在 v1 实现范围。含 <code>...</code>→<code>…</code>、<code>1/2</code>→<code>½</code> 等分数/排版符号——它们对路径、命令、版本号、省略号误伤风险高，需更充分的边界数据后再定。映射表参考 PyMdown Extensions（MIT），采用时 MUST 保留其版权声明。</p>
 </li>
 <li>
-<p><strong>排除区（MUST NOT 转换）</strong>：代码块、行内代码、链接与图片的目标地址、HTML 属性、原始 HTML 块、自动链接。</p>
-<p>实现提示：在 mdast 上遍历 <code>text</code> 节点即可天然满足上式——code / inlineCode / link.url / html 均不是 <code>text</code> 节点，无需自研 tokenizer。</p>
+<p><strong>Extended profile:</strong> Out of scope for v1. Includes <code>...</code>→<code>…</code>, <code>1/2</code>→<code>½</code>, and other fraction/typography symbols—these carry high risk of false positives against paths, commands, version numbers, and ellipses, and require more boundary data before they can be finalized. The mapping table references PyMdown Extensions (MIT); when adopted, its copyright notice MUST be retained.</p>
 </li>
 <li>
-<p><strong>词边界规则（MUST）：</strong> 仅当匹配序列<strong>前邻</strong>为行首 / 空白 / 中文标点，且<strong>后邻</strong>为行尾 / 空白 / 中文标点时才转换，否则保留原文。</p>
+<p><strong>Exclusion zones (MUST NOT transform):</strong> code blocks, inline code, link and image destination URLs, HTML attributes, raw HTML blocks, autolinks.</p>
+<p>Implementation hint: traversing <code>text</code> nodes on mdast naturally satisfies the above—code / inlineCode / link.url / html are not <code>text</code> nodes, so no custom tokenizer is needed.</p>
+</li>
+<li>
+<p><strong>Word boundary rule (MUST):</strong> transformation occurs only when the matched sequence is <strong>preceded by</strong> a line start / whitespace / Chinese punctuation, and <strong>followed by</strong> a line end / whitespace / Chinese punctuation; otherwise the original text is preserved.</p>
 <ul>
-<li>例：<code>a&#x3C;=b</code> 不转换（前邻 <code>a</code>）；<code>步骤 1 --> 步骤 2</code> 转换。</li>
-<li>中文标点集：<code>，。、；：！？（）【】《》「」『』—…·</code></li>
+<li>Example: <code>a&#x3C;=b</code> is not transformed (preceded by <code>a</code>); <code>步骤 1 --> 步骤 2</code> is transformed.</li>
+<li>Chinese punctuation set: <code>，。、；：！？（）【】《》「」『』—…·</code></li>
 </ul>
 </li>
 <li>
-<p><strong>转义（MUST，实现方法已由 M0 探针验证）：</strong> <code>\</code> 前缀转义。<code>(tm)</code> 表示字面 <code>(tm)</code>。</p>
+<p><strong>Escape (MUST, implementation approach verified by M0 probe):</strong> <code>\</code> prefix escape. <code>(tm)</code> means a literal <code>(tm)</code>.</p>
 <blockquote>
-<p><strong>实现陷阱（实测）：</strong> 不能按「Markdown 解析先消费反斜杠，符号转换再处理残余」的顺序实现。Markdown 解析阶段会把 <code>\(</code> 作为合法转义消费掉，text 节点中只剩 <code>(tm)</code>，<strong>转换器无法区分「用户写了 <code>(tm)</code> 想保留字面」与「用户写了 <code>(tm)</code> 想转换」</strong>。实测该顺序下 <code>(tm)</code> 被错误转换为 <code>™</code>。</p>
+<p><strong>Implementation trap (measured):</strong> Do not implement in the order "Markdown parser consumes backslashes first, then symbol converter handles the remainder." During Markdown parsing, <code>\(</code> is consumed as a valid escape, leaving only <code>(tm)</code> in the text node. <strong>The converter cannot distinguish "user wrote <code>(tm)</code> to keep literal" from "user wrote <code>(tm)</code> to convert."</strong> Measured: under this ordering, <code>(tm)</code> is incorrectly converted to <code>™</code>.</p>
 </blockquote>
 </li>
 <li>
-<p><strong>MUST 采用哨兵法</strong>（实测可行）：</p>
+<p><strong>MUST use the sentinel approach</strong> (measured, viable):</p>
 <ol>
-<li>解析<strong>前</strong>，把源码中 <code>\</code> + 符号 的序列替换为私有区哨兵（<code>U+E000</code>）+ 符号；</li>
-<li>正常解析与符号转换（哨兵是 Markdown 不解析的字符，且不满足词边界的前邻条件，故其后符号不被转换）；</li>
-<li>转换后<strong>删除哨兵</strong>，还原为字面符号。</li>
+<li>Before parsing, replace <code>\</code> + symbol sequences in the source with a private-use sentinel (<code>U+E000</code>) + symbol.</li>
+<li>Perform normal parsing and symbol conversion (the sentinel is a character Markdown does not parse, and it does not satisfy the word boundary "preceded by" condition, so the following symbol is not converted).</li>
+<li>After conversion, <strong>delete the sentinels</strong>, restoring the literal symbols.</li>
 </ol>
+<p>Cost is roughly 3 lines, with no source offset mapping and no sensitivity to entity references / multi-byte characters. Optional alternative (not adopted): remove the <code>\</code> escape syntax and use inline code <code>`(tm)`</code> as the literal-preservation mechanism—zero implementation cost, but sacrifices the ability to keep literal text in plain text without rendering it as code.</p>
 </li>
 </ol>
-<p>成本约 3 行，无源码偏移映射，不受实体引用/多字节影响。可选替代（未采用）：取消 <code>\</code> 转义语法，改用行内代码 <code>`(tm)`</code> 作为保留字面的手段——零实现成本，但牺牲「在普通文本中保留字面且不显示为代码」的能力。</p>
-<h3>7.2 文件包含</h3>
+<h3>7.2 File Inclusion</h3>
 <ol>
 <li>
-<p><strong>语法：</strong></p>
+<p><strong>Syntax:</strong></p>
 <pre><code class="language-markdown">&#x26;lt;&#x26;lt;&#x26;lt; includes/chapter-1.md
 &#x26;lt;&#x26;lt;&#x26;lt; "includes/a b.md"
 </code></pre>
 </li>
 <li>
-<p><strong>触发规则（MUST）：</strong> 指令仅在<strong>列 0</strong>（行首无缩进）且整行匹配正则 <code>^&#x3C;&#x3C;&#x3C;\s*(.+?)\s*$</code> 时触发。</p>
+<p><strong>Trigger rule (MUST):</strong> The directive triggers only when it is at <strong>column 0</strong> (no leading indentation) and the entire line matches the regex <code>^&#x3C;&#x3C;&#x3C;\s*(.+?)\s*$</code>.</p>
 <blockquote>
-<p>规范<strong>不</strong>要求感知代码块上下文。理由：正确判断代码块需要预处理器自行实现围栏扫描（<code>```</code>/<code>~~~</code>/不等长围栏/4 空格缩进/列表内嵌套），这在「解析前展开」的阶段是不可能的，且必然导致实现分叉。
-<strong>已知局限：</strong> 列 0 的围栏代码块内若出现符合上式的行，会被展开。此为已知且可接受行为，规范不修复。缩进 ≥1 空格或写在代码块内容中的指令天然不触发。</p>
+<p>The specification does <strong>not</strong> require code-block context awareness. Rationale: correctly determining code-block status requires the preprocessor to implement fence scanning (<code>```</code> / <code>~~~</code> / unequal-length fences / 4-space indentation / nested in lists), which is impossible at the "pre-parse expansion" stage and would inevitably cause implementation divergence.
+<strong>Known limitation:</strong> A line inside a column-0 fenced code block that matches the above pattern will be expanded. This is known and accepted behavior; the specification does not fix it. Directives indented by ≥1 space or written inside code block content naturally do not trigger.</p>
 </blockquote>
 </li>
 <li>
-<p><strong>路径解析：</strong> 路径相对<strong>包根</strong>解析，MUST 规范化后位于包根内。MUST NOT 访问包外文件、URL、其他 <code>.mdpkg</code> 包（<code>MDPKG-E501</code> / <code>MDPKG-E502</code>）。</p>
+<p><strong>Path resolution:</strong> Paths are resolved relative to the <strong>package root</strong> and, after normalization, MUST fall within the package root. Access to files outside the package, URLs, or other <code>.mdpkg</code> packages is forbidden (<code>MDPKG-E501</code> / <code>MDPKG-E502</code>).</p>
 </li>
 <li>
-<p><strong>目标类型：</strong> 仅包内 Markdown 文件。非 Markdown 目标 → <code>MDPKG-E503</code>。</p>
+<p><strong>Target type:</strong> Only in-package Markdown files. Non-Markdown targets → <code>MDPKG-E503</code>.</p>
 </li>
 <li>
-<p><strong>相对基准与 URL 重写（MUST，消除实现分叉的关键规则）：</strong>
-被包含文件 <code>P</code>（包内路径）中的<strong>相对</strong>图片/资源引用 <code>R</code>，在展开时 MUST 以纯文本方式重写为 <code>normalize(dirname(P) + "/" + R)</code>。</p>
+<p><strong>Relative base and URL rewriting (MUST, the key rule that eliminates implementation divergence):</strong>
+A <strong>relative</strong> image/resource reference <code>R</code> in an included file <code>P</code> (in-package path) MUST be rewritten as plain text to <code>normalize(dirname(P) + "/" + R)</code> at expansion time.</p>
 <ul>
-<li>例：<code>includes/chapter-1.md</code> 中的 <code>img/fig.png</code> → 展开后为 <code>includes/img/fig.png</code>。</li>
-<li>绝对 URL、协议相对 URL、<code>data:</code> URI MUST NOT 被重写。</li>
-<li><strong>代码块与行内代码中的示例路径 MUST NOT 被重写</strong>：代码围栏内常出现 Markdown 用法示例（如教程里的 <code>![图](img/demo.png)</code>），重写它会篡改用户可见内容。实现需跟踪围栏状态（<code>```</code> / <code>~~~</code>）以跳过代码块内的行——<strong>此规则仅约束 URL 重写</strong>，与上文「include 指令仅在列 0 触发、不感知代码块」是两件事，后者保持不变。
+<li>Example: <code>img/fig.png</code> in <code>includes/chapter-1.md</code> → after expansion becomes <code>includes/img/fig.png</code>.</li>
+<li>Absolute URLs, protocol-relative URLs, and <code>data:</code> URIs MUST NOT be rewritten.</li>
+<li><strong>Example paths in code blocks and inline code MUST NOT be rewritten:</strong> code fences frequently contain Markdown usage examples (e.g., a tutorial's <code>![fig](img/demo.png)</code>). Rewriting them would alter user-visible content. The implementation MUST track fence state (<code>```</code> / <code>~~~</code>) to skip lines inside code blocks—<strong>this rule constrains only URL rewriting</strong> and is separate from the above "include directives trigger only at column 0 and do not perceive code blocks"; the latter remains unchanged.
 <ul>
-<li>与 §6.2 的引用收集共用同一原则：<strong>凡对 Markdown 做文本级处理，都必须排除代码块与行内代码</strong>（引用收集走 AST，重写走围栏跟踪）。实测二者各出过一次缺陷。</li>
+<li>This shares the same principle as §6.2 reference collection: <strong>any text-level processing of Markdown MUST exclude code blocks and inline code</strong> (reference collection uses AST; rewriting uses fence tracking). Each has produced a defect in practice.</li>
 </ul>
 </li>
-<li>重写发生在<strong>展开阶段</strong>（文本层），使展开后的文本自洽；<code>render</code> 与 <code>export --expanded</code> 共用同一份中间产物，渲染器无需再携带「当前文件上下文」。</li>
+<li>Rewriting occurs at the <strong>expansion stage</strong> (text layer), making the expanded text self-consistent; <code>render</code> and <code>export --expanded</code> share the same intermediate product, and the renderer no longer needs to carry "current file context".</li>
 </ul>
 </li>
 <li>
-<p><strong>嵌套：</strong> 允许嵌套包含，逐层递归执行同一管线（展开 → 解析 → 符号转换），深度计入上限。</p>
+<p><strong>Nesting:</strong> Nested inclusion is allowed; the same pipeline (expansion → parsing → symbol conversion) is applied recursively layer by layer, with depth counted toward the limit.</p>
 </li>
 <li>
-<p><strong>硬限制（MUST，默认值必须存在）：</strong></p>
-</li>
-</ol>
+<p><strong>Hard limits (MUST; defaults must exist):</strong></p>
 <table>
 <thead>
 <tr>
-<th>限制</th>
-<th>默认值</th>
-<th>错误码</th>
+<th>Limit</th>
+<th>Default</th>
+<th>Error Code</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>最大深度</td>
+<td>Maximum depth</td>
 <td>32</td>
 <td><code>MDPKG-E504</code></td>
 </tr>
 <tr>
-<td>单文档展开后总字节</td>
+<td>Expanded size per document</td>
 <td>10 MB</td>
 <td><code>MDPKG-E505</code></td>
 </tr>
 <tr>
-<td>单包内 include 指令总次数</td>
+<td>Total include directives per package</td>
 <td>1000</td>
 <td><code>MDPKG-E506</code></td>
 </tr>
 </tbody>
 </table>
-<ol start="8">
-<li><strong>循环检测（MUST）：</strong> 维护展开栈，同一文件在栈中重复出现即报 <code>MDPKG-E507</code>。</li>
-<li><strong>错误定位（SHOULD）：</strong> 实现 SHOULD 维护「展开后行号 → (源文件, 原始行号)」映射，使报错携带原始出处。</li>
+</li>
+<li>
+<p><strong>Cycle detection (MUST):</strong> Maintain an expansion stack; if the same file appears in the stack more than once, report <code>MDPKG-E507</code>.</p>
+</li>
+<li>
+<p><strong>Error location (SHOULD):</strong> The implementation SHOULD maintain an "expanded line number → (source file, original line number)" mapping so that errors carry their original origin.</p>
+</li>
 </ol>
 <hr>
-<h2>8. 处理管线与命令行</h2>
-<h3>8.1 渲染管线（顺序固定，MUST）</h3>
-<pre><code class="language-text">1. 读取并解包 ZIP
-2. 校验 manifest（Schema + 资源 size/sha256）
-3. 预处理：include 展开（循环/深度/大小限制 + 相对 URL 重写）
-4. 解析：Markdown → AST
-5. 符号转换：仅作用于 text 节点（词边界 + 转义）
-6. 渲染：AST → HTML（安全清理）
-7. 输出
+<h2>8. Processing Pipeline and CLI</h2>
+<h3>8.1 Rendering Pipeline (Fixed Order, MUST)</h3>
+<pre><code class="language-text">1. Read and unpack ZIP
+2. Validate manifest (Schema + resource size/sha256)
+3. Pre-process: include expansion (cycle/depth/size limits + relative URL rewriting)
+4. Parse: Markdown → AST
+5. Symbol conversion: applied only to text nodes (word boundary + escape)
+6. Render: AST → HTML (safe sanitization)
+7. Output
 </code></pre>
-<h3>8.2 HTML 安全（MUST）</h3>
+<h3>8.2 HTML Safety (MUST)</h3>
 <ol>
-<li>输出 MUST 经 HTML 消毒（清 <code>script</code> / <code>on*</code> 事件属性 / <code>javascript:</code> URL）。</li>
-<li><strong>SVG MUST 以 <code>&#x3C;img></code> 引用方式渲染，不得插入 HTML DOM。</strong>
+<li>Output MUST undergo HTML sanitization (stripping <code>script</code> / <code>on*</code> event attributes / <code>javascript:</code> URLs).</li>
+<li><strong>SVGs MUST be rendered via <code>&#x3C;img></code> reference and MUST NOT be inserted into the HTML DOM.</strong>
 <ul>
-<li>澄清：<code>&#x3C;img src="data:image/svg+xml;base64,..."></code> <strong>属于 <code>&#x3C;img></code> 引用</strong>，其中的 SVG 不执行脚本，因此 <code>render --inline</code> 可安全地对 SVG 使用 data URI。</li>
-<li>「内联」专指把 SVG 节点插入 HTML DOM 树——该行为 v1 禁止，即使显式开关也不提供。</li>
+<li>Clarification: <code>&#x3C;img src="data:image/svg+xml;base64,..."></code> <strong>is an <code>&#x3C;img></code> reference</strong>; the SVG inside does not execute scripts, so <code>render --inline</code> can safely use data URIs for SVGs.</li>
+<li>"Inline" specifically means inserting SVG nodes into the HTML DOM tree—this behavior is forbidden in v1, and no explicit switch is provided.</li>
 </ul>
 </li>
-<li>外部 URL 图片 MUST 附 <code>referrerpolicy="no-referrer"</code>。</li>
-<li>文档内联的原始 HTML MUST 经消毒；消毒行为 MUST 可审计（记录被移除的节点类型数）。</li>
+<li>External-URL images MUST carry <code>referrerpolicy="no-referrer"</code>.</li>
+<li>Raw HTML inline in the document MUST be sanitized; sanitization behavior MUST be auditable (record the count of removed node types by type).</li>
 </ol>
-<h3>8.3 完整性校验的边界（MUST 在规范中明示）</h3>
-<p><code>manifest.json</code> 记录的 SHA-256 用于检测<strong>非恶意的完整性问题</strong>：传输损坏、误传、解包后被外部程序改写、跨平台 NFC/NFD 字节漂移。</p>
-<p><strong>它不提供防篡改保证。</strong> manifest 与被校验资源位于同一 ZIP 内，任何能重写包的人都可同步更新摘要，校验仍会通过。防篡改需要签名机制（签名或摘要锚点位于包外），<strong>v1 不提供</strong>。</p>
-<p>实现 MUST NOT 在输出信息中把校验通过描述为「未被篡改 / 可信 / 已验证来源」。</p>
-<h3>8.4 解包安全（MUST）</h3>
-<p>实现 MUST 在解包/读取时强制下列上限，且默认值必须存在（可用参数覆盖）：</p>
+<h3>8.3 Boundary of Integrity Checking (MUST Be Stated in the Spec)</h3>
+<p>The SHA-256 recorded in <code>manifest.json</code> is used to detect <strong>non-malicious integrity issues</strong>: transfer corruption, misdelivery, post-unpack modification by external programs, and cross-platform NFC/NFD byte drift.</p>
+<p><strong>It does not provide tamper-resistance.</strong> The manifest and the resources it validates reside in the same ZIP; anyone who can rewrite the package can also update the hashes, and validation will still pass. Tamper-resistance requires a signing mechanism (signatures or digest anchors located outside the package), which <strong>v1 does not provide</strong>.</p>
+<p>The implementation MUST NOT describe a passing validation as "not tampered / trusted / source-verified" in its output.</p>
+<h3>8.4 Unpack Safety (MUST)</h3>
+<p>The implementation MUST enforce the following limits during unpack/read, and defaults must exist (overridable by parameters):</p>
 <table>
 <thead>
 <tr>
-<th>限制</th>
-<th>默认值</th>
-<th>错误码</th>
+<th>Limit</th>
+<th>Default</th>
+<th>Error Code</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>资源总数</td>
-<td>10 000</td>
+<td>Total resource count</td>
+<td>10,000</td>
 <td><code>MDPKG-E602</code></td>
 </tr>
 <tr>
-<td>单文件解压后字节</td>
+<td>Uncompressed bytes per file</td>
 <td>200 MB</td>
 <td><code>MDPKG-E603</code></td>
 </tr>
 <tr>
-<td>总解压字节</td>
+<td>Total uncompressed bytes</td>
 <td>1 GB</td>
 <td><code>MDPKG-E604</code></td>
 </tr>
 <tr>
-<td>单条目压缩比</td>
+<td>Compression ratio per entry</td>
 <td>1000:1</td>
 <td><code>MDPKG-E605</code></td>
 </tr>
 </tbody>
 </table>
-<p>检测 MUST 在解压<strong>过程中</strong>流式计数，不得先完整解压再统计（否则 ZIP 炸弹防护失效）。判定只需读条目的 central directory header，<strong>达到上限即不启动该条目的解压流</strong>——实测 120 MB 炸弹（120 KB 压缩包）只读 header 拒绝耗时 0 ms，完整解压需 156 ms，且未落盘。</p>
+<p>Detection MUST stream-count during decompression; it MUST NOT fully decompress first and then measure (otherwise ZIP bomb protection fails). Determination requires only reading the entry's central directory header; <strong>once the limit is reached, the decompression stream for that entry is not started</strong>—measured: a 120 MB bomb (120 KB compressed) rejected by header-only read takes 0 ms; full decompression takes 156 ms and nothing is written to disk.</p>
 <blockquote>
-<p><strong>实现陷阱（实测，fflate）：</strong> <code>Unzip</code> 回调暴露的 <code>size</code> 是<strong>压缩后</strong>大小，<code>originalSize</code> 才是解压后大小；<code>compressedSize</code> 为 <code>undefined</code>。误用 <code>size</code> 做上限判定会让炸弹防护<strong>完全失效</strong>。另：<code>Unzip</code> 的文件回调必须传给<strong>构造函数</strong> <code>new Unzip(cb)</code>，<code>register()</code> 只用于注册编解码器；否则抛 <code>no stream handler</code>。</p>
+<p><strong>Implementation trap (measured, fflate):</strong> The <code>size</code> exposed in <code>Unzip</code> callbacks is the <strong>compressed</strong> size; <code>originalSize</code> is the uncompressed size; <code>compressedSize</code> is <code>undefined</code>. Misusing <code>size</code> for limit checks <strong>completely disables</strong> bomb protection. Also: the file callback for <code>Unzip</code> MUST be passed to the <strong>constructor</strong> <code>new Unzip(cb)</code>; <code>register()</code> is only for registering codecs; otherwise it throws <code>no stream handler</code>.</p>
 </blockquote>
-<h3>8.5 版本协商</h3>
+<h3>8.5 Version Negotiation</h3>
 <ul>
-<li>主版本不同 → MUST 拒绝处理并报错（<code>MDPKG-E701</code>）。</li>
-<li>次版本更高 → 处理已知的 v1 字段，忽略未知字段（<code>MUST NOT</code> 因未知字段报错）。</li>
-<li><code>extensions_required</code> 中存在实现不支持的项 → MUST 报错退出（<code>MDPKG-E702</code>），<strong>不得</strong>静默降级。</li>
+<li>Major version differs → MUST reject and error (<code>MDPKG-E701</code>).</li>
+<li>Minor version higher → process known v1 fields, ignore unknown fields (MUST NOT error on unknown fields).</li>
+<li><code>extensions_required</code> contains an item the implementation does not support → MUST error and exit (<code>MDPKG-E702</code>); silent degradation is forbidden.</li>
 </ul>
-<h3>8.6 命令契约</h3>
+<h3>8.6 Command Contract</h3>
 <table>
 <thead>
 <tr>
-<th>命令</th>
-<th>说明</th>
+<th>Command</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
@@ -576,289 +586,289 @@ li{margin:.3em 0}
 </tr>
 <tr>
 <td><code>mdpkg unpack &#x3C;pkg> -o dir</code></td>
-<td>还原为目录；强制 §8.4 上限</td>
+<td>Restore to directory; enforce §8.4 limits</td>
 </tr>
 <tr>
 <td><code>mdpkg list &#x3C;pkg></code></td>
-<td>列出 <code>resources[]</code>（path / media_type / size）</td>
+<td>List <code>resources[]</code> (path / media_type / size)</td>
 </tr>
 <tr>
 <td><code>mdpkg validate &#x3C;pkg></code></td>
-<td>Schema + size + sha256 + 路径规则 + 限制项；统计外链数并提示「本包含 N 个外部引用，不可完全离线」</td>
+<td>Schema + size + sha256 + path rules + limit items; count external links and report "this package contains N external references and cannot be fully offline"</td>
 </tr>
 <tr>
 <td><code>mdpkg render &#x3C;pkg></code></td>
-<td>见 §8.7</td>
+<td>See §8.7</td>
 </tr>
 <tr>
 <td><code>mdpkg export --raw &#x3C;pkg> -o dir</code></td>
-<td>输出<strong>目录</strong>，保持包内结构，文本一字不改</td>
+<td>Output a <strong>directory</strong>, preserving in-package structure, text unchanged</td>
 </tr>
 <tr>
 <td><code>mdpkg export --expanded &#x3C;pkg> -o dir</code></td>
-<td>输出<strong>目录</strong>，含一份展开后的 Markdown（include 已展开、相对 URL 已按 §7.2 重写）+ 全部资源</td>
+<td>Output a <strong>directory</strong>, including expanded Markdown (include expanded, relative URLs rewritten per §7.2) + all resources</td>
 </tr>
 <tr>
 <td><code>mdpkg diff &#x3C;a> &#x3C;b></code></td>
-<td>双方解包到临时目录后 <code>diff -ruN</code></td>
+<td>Unpack both sides to temp directories, then <code>diff -ruN</code></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p><code>--raw</code> MUST 输出目录而非单文件：未展开的文档其 include 指令与相对路径在其他层级下无意义，输出成单文件必然损坏。<code>--expanded</code> 的产出可被任何标准 Markdown 工具打开。</p>
+<p><code>--raw</code> MUST output a directory, not a single file: in unexpanded documents, include directives and relative paths are meaningless at other levels; outputting to a single file would inevitably corrupt them. The output of <code>--expanded</code> can be opened by any standard Markdown tool.</p>
 </blockquote>
-<h3>8.7 <code>mdpkg render</code> 输出形态</h3>
+<h3>8.7 <code>mdpkg render</code> Output Modes</h3>
 <pre><code>mdpkg render &#x3C;pkg> [-o out.html] [--inline | --dir] [--max-inline-bytes N]
 </code></pre>
 <ul>
-<li><strong>默认 <code>--inline</code></strong>：资源以 data URI 内联，产出<strong>单个自包含 HTML 文件</strong>，对应「AI 生成文档交付」定位。</li>
-<li>资源总字节 > <code>--max-inline-bytes</code>（默认 50 MB）时，MUST 自动降级为 <code>--dir</code> 并在 stderr 打印提示。</li>
-<li>显式指定 <code>--inline</code> 或 <code>--dir</code> 时忽略阈值。</li>
-<li><code>--dir</code>：解包资源到输出 HTML 旁的同级目录，HTML 用相对路径引用。</li>
+<li><strong>Default <code>--inline</code>:</strong> resources are inlined as data URIs, producing a <strong>single self-contained HTML file</strong>, matching the "AI-generated document delivery" positioning.</li>
+<li>When total resource bytes exceed <code>--max-inline-bytes</code> (default 50 MB), MUST automatically degrade to <code>--dir</code> and print a notice to stderr.</li>
+<li>When <code>--inline</code> or <code>--dir</code> is explicitly specified, the threshold is ignored.</li>
+<li><code>--dir</code>: unpack resources to a sibling directory next to the output HTML; the HTML references them with relative paths.</li>
 </ul>
 <hr>
-<h2>9. 兼容性（三层）</h2>
+<h2>9. Compatibility (Three Layers)</h2>
 <table>
 <thead>
 <tr>
-<th>层</th>
-<th>承诺</th>
+<th>Layer</th>
+<th>Commitment</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>容器兼容</td>
-<td><code>.mdpkg</code> 是标准 ZIP，<code>unzip -l</code> / <code>unzip -p</code> 可列可提</td>
+<td>Container compatibility</td>
+<td><code>.mdpkg</code> is a standard ZIP; <code>unzip -l</code> / <code>unzip -p</code> can list and extract</td>
 </tr>
 <tr>
-<td>文档兼容</td>
-<td>包内 Markdown 是标准 Markdown + 相对路径；符号保持源文本；<code>&#x3C;&#x3C;&#x3C;</code> 降级为可见文本</td>
+<td>Document compatibility</td>
+<td>In-package Markdown is standard Markdown + relative paths; symbols keep their source text; <code>&#x3C;&#x3C;&#x3C;</code> degrades to visible text</td>
 </tr>
 <tr>
-<td>导出兼容</td>
-<td><code>export --raw</code> / <code>--expanded</code> 的产出可被任何标准 Markdown 工具打开</td>
+<td>Export compatibility</td>
+<td>Output from <code>export --raw</code> / <code>--expanded</code> can be opened by any standard Markdown tool</td>
 </tr>
 </tbody>
 </table>
-<p><strong>不承诺：</strong> 普通文本编辑器直接打开 <code>.mdpkg</code> 即获得完整渲染。</p>
+<p><strong>Not committed:</strong> Opening <code>.mdpkg</code> directly in a plain text editor yields a complete rendering.</p>
 <hr>
-<h2>附录 A：错误码表</h2>
+<h2>Appendix A: Error Code Reference</h2>
 <table>
 <thead>
 <tr>
-<th>码</th>
-<th>含义</th>
-<th>触发</th>
+<th>Code</th>
+<th>Meaning</th>
+<th>Trigger</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>1xx 容器</strong></td>
+<td><strong>1xx Container</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E101</code></td>
-<td>不是有效 ZIP</td>
-<td>打开阶段</td>
+<td>Not a valid ZIP</td>
+<td>Open phase</td>
 </tr>
 <tr>
 <td><code>MDPKG-E102</code></td>
-<td>缺少 <code>manifest.json</code></td>
-<td>识别阶段</td>
+<td>Missing <code>manifest.json</code></td>
+<td>Identification phase</td>
 </tr>
 <tr>
 <td><code>MDPKG-E103</code></td>
-<td>识别失败，按普通 ZIP 处理</td>
-<td>非错误，仅提示</td>
+<td>Identification failed; treated as plain ZIP</td>
+<td>Not an error, informational only</td>
 </tr>
 <tr>
-<td><strong>2xx 路径/编码</strong></td>
+<td><strong>2xx Path / Encoding</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E201</code></td>
-<td>路径冲突（归一化或大小写后重复）</td>
+<td>Path conflict (duplicate after normalization or case-folding)</td>
 <td>pack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E202</code></td>
-<td>非法路径（<code>..</code> / 绝对 / 空段 / NUL / 盘符）</td>
+<td>Illegal path (<code>..</code> / absolute / empty segment / NUL / drive letter)</td>
 <td>pack / unpack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E203</code></td>
-<td>非 UTF-8 文本或含 BOM</td>
+<td>Non-UTF-8 text or contains BOM</td>
 <td>pack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E204</code></td>
-<td>路径超长（> 1024 字节）</td>
+<td>Path too long (> 1024 bytes)</td>
 <td>pack</td>
 </tr>
 <tr>
-<td><strong>3xx manifest</strong></td>
+<td><strong>3xx Manifest</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E301</code></td>
-<td>无法确定入口文档</td>
+<td>Cannot determine entrypoint document</td>
 <td>pack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E302</code></td>
-<td>manifest 不符合 Schema</td>
+<td>manifest does not conform to Schema</td>
 <td>validate</td>
 </tr>
 <tr>
 <td><code>MDPKG-E303</code></td>
-<td><code>entrypoint</code> 指向不存在或非 Markdown</td>
+<td><code>entrypoint</code> points to a non-existent or non-Markdown file</td>
 <td>validate</td>
 </tr>
 <tr>
 <td><code>MDPKG-E304</code></td>
-<td><code>resources</code> 未覆盖包内全部文件</td>
+<td><code>resources</code> does not cover all files in the package</td>
 <td>validate</td>
 </tr>
 <tr>
-<td><strong>4xx 资源</strong></td>
+<td><strong>4xx Resource</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E401</code></td>
-<td>引用的本地资源缺失</td>
+<td>Referenced local resource missing</td>
 <td>pack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E402</code></td>
-<td>资源 size 不符</td>
+<td>Resource size mismatch</td>
 <td>validate</td>
 </tr>
 <tr>
 <td><code>MDPKG-E403</code></td>
-<td>资源 sha256 不符（<strong>完整性问题，非篡改证据</strong>）</td>
+<td>Resource sha256 mismatch (<strong>integrity issue, not evidence of tampering</strong>)</td>
 <td>validate</td>
 </tr>
 <tr>
 <td><code>MDPKG-E404</code></td>
-<td>孤儿资源（warning，非错误）</td>
+<td>Orphan resource (warning, not an error)</td>
 <td>pack</td>
 </tr>
 <tr>
-<td><strong>5xx include</strong></td>
+<td><strong>5xx Include</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E501</code></td>
-<td>include 目标在包外</td>
+<td>include target outside package</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E502</code></td>
-<td>include 目标是 URL 或外部包</td>
+<td>include target is a URL or external package</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E503</code></td>
-<td>include 目标非 Markdown</td>
+<td>include target is not Markdown</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E504</code></td>
-<td>深度超限（默认 32）</td>
+<td>Depth limit exceeded (default 32)</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E505</code></td>
-<td>展开后字节超限（默认 10 MB）</td>
+<td>Expanded byte limit exceeded (default 10 MB)</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E506</code></td>
-<td>include 次数超限（默认 1000）</td>
+<td>Include count limit exceeded (default 1000)</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E507</code></td>
-<td>检测到循环包含</td>
+<td>Cyclic inclusion detected</td>
 <td>render / export</td>
 </tr>
 <tr>
 <td><code>MDPKG-E508</code></td>
-<td>include 目标不存在</td>
+<td>include target does not exist</td>
 <td>render / export</td>
 </tr>
 <tr>
-<td><strong>6xx 安全/限制</strong></td>
+<td><strong>6xx Safety / Limits</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E601</code></td>
-<td>符号链接 / 硬链接条目</td>
+<td>Symbolic-link / hard-link entry</td>
 <td>pack / unpack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E602</code></td>
-<td>资源总数超限</td>
+<td>Total resource count limit exceeded</td>
 <td>unpack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E603</code></td>
-<td>单文件解压字节超限</td>
+<td>Uncompressed byte limit per file exceeded</td>
 <td>unpack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E604</code></td>
-<td>总解压字节超限</td>
+<td>Total uncompressed byte limit exceeded</td>
 <td>unpack</td>
 </tr>
 <tr>
 <td><code>MDPKG-E605</code></td>
-<td>压缩比异常（疑似 ZIP 炸弹）</td>
+<td>Abnormal compression ratio (suspected ZIP bomb)</td>
 <td>unpack</td>
 </tr>
 <tr>
-<td><strong>7xx 扩展/版本</strong></td>
+<td><strong>7xx Extension / Version</strong></td>
 <td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>MDPKG-E701</code></td>
-<td>spec_version 主版本不支持</td>
-<td>任何读操作</td>
+<td>spec_version major version unsupported</td>
+<td>Any read operation</td>
 </tr>
 <tr>
 <td><code>MDPKG-E702</code></td>
-<td><code>extensions_required</code> 含不支持项</td>
+<td><code>extensions_required</code> contains unsupported item</td>
 <td>render</td>
 </tr>
 <tr>
 <td><code>MDPKG-E703</code></td>
-<td>未知扩展字段（warning，忽略）</td>
+<td>Unknown extension field (warning, ignored)</td>
 <td>validate</td>
 </tr>
 </tbody>
 </table>
-<p>退出码：<code>0</code> 成功；<code>1</code> 校验/业务错误（伴随上表错误码）；<code>2</code> 用法错误；<code>3</code> 内部错误。</p>
+<p>Exit codes: <code>0</code> success; <code>1</code> validation / business error (accompanied by an error code from the table above); <code>2</code> usage error; <code>3</code> internal error.</p>
 <hr>
-<h2>附录 B：一致性测试向量（Conformance Fixtures）</h2>
-<h3>B.1 为什么它是 Phase 0 的核心产物</h3>
-<p>「两个独立实现仅凭规范生成同等语义的包」无法靠读文档验证，只能靠一套可执行的、与实现无关的向量。fixtures 是规范的可执行形式，<strong>先写 fixtures 再写规范，比反过来快得多</strong>——fixture 会主动逼出规范的每一处含糊。</p>
-<h3>B.2 目录与格式</h3>
+<h2>Appendix B: Conformance Fixtures</h2>
+<h3>B.1 Why It Is a Core Phase 0 Deliverable</h3>
+<p>Verifying that "two independent implementations produce semantically equivalent packages from the specification alone" cannot be done by reading the document; it requires an executable, implementation-agnostic set of vectors. Fixtures are the executable form of the specification. <strong>Writing fixtures before the specification is far faster than the reverse</strong>—fixtures actively force out every ambiguity in the spec.</p>
+<h3>B.2 Directory and Format</h3>
 <pre><code class="language-text">spec/fixtures/&#x3C;case-id>/
-├── case.json        # 用例定义
-├── input/           # 输入目录，或 input.mdpkg
-└── expected/        # 期望产出（manifest / html / 解包树）
+├── case.json        # case definition
+├── input/           # input directory, or input.mdpkg
+└── expected/        # expected output (manifest / html / unpacked tree)
 </code></pre>
-<p><code>case.json</code>：</p>
+<p><code>case.json</code>:</p>
 <pre><code class="language-json">{
   "id": "pack-basic",
-  "title": "最小包：1 图片 + 1 级 include + core 符号",
+  "title": "Minimal package: 1 image + 1-level include + core symbols",
   "kind": "pack",
   "args": ["pack", "input/", "-o", "out.mdpkg"],
   "expect": {
@@ -872,8 +882,8 @@ li{margin:.3em 0}
 <table>
 <thead>
 <tr>
-<th>字段</th>
-<th>说明</th>
+<th>Field</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
@@ -883,87 +893,62 @@ li{margin:.3em 0}
 </tr>
 <tr>
 <td><code>expect.exitCode</code></td>
-<td>期望退出码</td>
+<td>Expected exit code</td>
 </tr>
 <tr>
 <td><code>expect.errorCode</code></td>
-<td>期望错误码（负向用例必填）</td>
+<td>Expected error code (mandatory for negative cases)</td>
 </tr>
 <tr>
 <td><code>expect.manifest</code></td>
-<td>期望 manifest 路径（逐字段比对，<code>resources[].sha256</code> 必比对）</td>
+<td>Expected manifest path (field-by-field comparison; <code>resources[].sha256</code> always compared)</td>
 </tr>
 <tr>
 <td><code>expect.tree</code></td>
-<td>期望解包目录树（路径 + 大小）</td>
+<td>Expected unpacked directory tree (paths + sizes)</td>
 </tr>
 <tr>
 <td><code>expect.html</code></td>
-<td>期望 HTML 路径（<code>render</code> 用例，比对规范化后的 DOM）</td>
+<td>Expected HTML path (<code>render</code> cases; compare normalized DOM)</td>
 </tr>
 <tr>
 <td><code>expect.stderrContains</code></td>
-<td>期望 stderr 包含的子串</td>
+<td>Substring expected in stderr</td>
 </tr>
 </tbody>
 </table>
-<p><code>pack</code> 用例 MUST 额外断言<strong>可重复性</strong>：以相同输入打包两次，两次产物字节相同。</p>
-<h3>B.3 用例清单（Phase 0B 目标 ≥ 30）</h3>
+<p><code>pack</code> cases MUST additionally assert <strong>reproducibility</strong>: packing the same input twice produces byte-identical output.</p>
+<h3>B.3 Case Inventory (Phase 0B target ≥ 30)</h3>
 <blockquote>
-<p><strong>落地状态（2026-08-30）：已实现 43 个用例</strong>（下方目标清单已全覆盖），位于 <code>spec/fixtures/&#x3C;id>/</code>，由 <code>packages/mdpkg/test/fixtures.test.ts</code> 驱动，全部通过（<strong>全量 79/79</strong>，含 36 个实现单测）。</p>
-<p>实际 <code>case.json</code> 字段（与 B.2 的差异：断言内联，只有大产物才放 <code>expected/</code> 目录）：
-<code>id</code> / <code>title</code> / <code>kind</code>（<code>pack</code>|<code>validate</code>|<code>render</code>|<code>expand</code>|<code>path</code>）/ <code>input</code>（默认 <code>input/</code>）/ <code>entry</code> / <code>args</code>（传给 <code>render</code>）/ <code>tamper</code>（篡改 manifest 以测完整性：<code>{ resource, sha256, size }</code>）/ <code>expect</code>（<code>errorCode</code>|<code>tree</code>|<code>manifest</code>|<code>htmlContains</code>|<code>htmlNotContains</code>|<code>textContains</code>|<code>pathInput</code>）。</p>
-<p>与下方目标清单的差异及原因：</p>
+<p><strong>Implementation status (2026-08-30): 43 cases implemented</strong> (the target list below is fully covered), located at <code>spec/fixtures/&#x3C;id>/</code>, driven by <code>packages/mdpkg/test/fixtures.test.ts</code>, all passing (<strong>full suite 79/79</strong>, including 36 implementation unit tests).</p>
+<p>Actual <code>case.json</code> fields (difference from B.2: assertions are inline; only large outputs go in <code>expected/</code>):
+<code>id</code> / <code>title</code> / <code>kind</code> (<code>pack</code>|<code>validate</code>|<code>render</code>|<code>expand</code>|<code>path</code>) / <code>input</code> (default <code>input/</code>) / <code>entry</code> / <code>args</code> (passed to <code>render</code>) / <code>tamper</code> (tamper manifest to test integrity: <code>{ resource, sha256, size }</code>) / <code>expect</code> (<code>errorCode</code>|<code>tree</code>|<code>manifest</code>|<code>htmlContains</code>|<code>htmlNotContains</code>|<code>textContains</code>|<code>pathInput</code>).</p>
+<p>Differences from the target list below and reasons:</p>
 <ul>
-<li><strong>不进 fixture 的用例</strong>（受执行环境限制，改由实现单测覆盖）：① 大小写冲突、NFC/NFD 同名冲突——macOS APFS 对大小写与 Unicode 规范化均不敏感，这类输入在文件系统上会互相覆盖，根本建不出来，已由 <code>container.test.ts</code> 用内存 Map 覆盖；② ZIP 炸弹——需在用例内嵌入 12 MB 文件且需 unpack 通道，已由 <code>container.test.ts</code> 覆盖。</li>
-<li>驱动共六条通道：<code>pack</code> / <code>validate</code> / <code>render</code> / <code>expand</code> / <code>export</code> / <code>unpack</code>（外加不依赖文件树的 <code>path</code>）。<code>unpack-roundtrip</code> 断言 pack→unpack 后除 <code>manifest.json</code>（工具生成）外每个文件逐字节相同。</li>
-<li><strong>可重复性不单独立用例</strong>：驱动对所有 <code>pack</code> 类用例自动附加「两次打包字节相同」断言。</li>
+<li><strong>Cases not in fixtures</strong> (constrained by execution environment; covered by implementation unit tests instead): ① case-conflict and NFC/NFD same-name conflicts—macOS APFS is insensitive to both case and Unicode normalization, so these inputs overwrite each other on the filesystem and cannot be created at all; covered by <code>container.test.ts</code> using an in-memory Map; ② ZIP bombs—require embedding a 12 MB file in the case and an unpack channel; covered by <code>container.test.ts</code>.</li>
+<li>Six driver channels: <code>pack</code> / <code>validate</code> / <code>render</code> / <code>expand</code> / <code>export</code> / <code>unpack</code> (plus <code>path</code>, which does not depend on a file tree). <code>unpack-roundtrip</code> asserts that after pack→unpack, every file is byte-identical except <code>manifest.json</code> (tool-generated).</li>
+<li><strong>Reproducibility is not a separate case</strong>: the driver automatically attaches a "two packs are byte-identical" assertion to all <code>pack</code> cases.</li>
 </ul>
 </blockquote>
-<p><strong>正向（8）</strong></p>
+<p><strong>Positive (8)</strong></p>
 <ol>
-<li><code>pack-basic</code> — 1 图片 + 1 级 include + core 符号（最小示例包，也是文档示例）</li>
-<li><code>pack-reproducible</code> — 同输入两次打包字节一致</li>
-<li><code>pack-unicode-path</code> — 中文文件名、Unicode 文件名、NFD 输入</li>
-<li><code>unpack-roundtrip</code> — pack → unpack → 与原目录逐字节相同</li>
-<li><code>render-symbols</code> — 普通文本替换；代码/行内代码/URL/HTML 属性/转义不替换</li>
-<li><code>render-include-nested</code> — 多层 include 与嵌套文件内的相对图片路径重写</li>
-<li><code>export-raw</code> / <code>export-expanded</code> — 两种导出模式产出可被标准工具打开</li>
-<li><code>validate-clean</code> — 干净包全绿</li>
+<li><code>pack-basic</code> — 1 image + 1-level include + core symbols (minimal example package, also the documentation example)</li>
+<li><code>pack-reproducible</code> — same input packed twice produces byte-identical output</li>
+<li><code>pack-unicode-path</code> — Chinese filenames, Unicode filenames, NFD input</li>
+<li><code>unpack-roundtrip</code> — pack → unpack → byte-identical to original directory</li>
+<li><code>render-symbols</code> — plain text replacement; code / inline code / URL / HTML attributes / escaped not replaced</li>
+<li><code>render-include-nested</code> — multi-level include and relative image path rewriting in nested files</li>
+<li><code>export-raw</code> / <code>export-expanded</code> — both export modes produce output openable by standard tools</li>
+<li><code>validate-clean</code> — clean package passes all checks</li>
 </ol>
-<p><strong>符号边界（4）</strong>
-9. <code>symbols-word-boundary</code> — <code>a&#x3C;=b</code>、<code>v1.2-->v2</code>、<code>...</code>、中英文混排不误伤
-10. <code>symbols-escape</code> — <code>(tm)</code> 保留字面
-11. <code>symbols-profile-off</code> — <code>extensions.symbols: "off"</code> 全不转换
-12. <code>symbols-cjk-punct</code> — 中文标点前后正确转换</p>
-<p><strong>include（7）</strong>
-13. <code>include-single</code> / <code>include-multi-level</code> / <code>include-cycle</code> / <code>include-duplicate</code>
-14. <code>include-missing</code> / <code>include-outside-root</code> / <code>include-non-markdown</code>
-15. <code>include-quoted-path</code> — 含空格路径 <code>"includes/a b.md"</code>
-16. <code>include-indented-not-triggered</code> — 缩进 1 空格不触发
-17. <code>include-depth-limit</code> / <code>include-size-limit</code> / <code>include-count-limit</code>
-18. <code>include-url-rewrite</code> — 嵌套文件内相对图片路径重写正确（含同名不同目录）</p>
-<p><strong>安全（8）</strong>
-19. <code>sec-path-traversal</code> / <code>sec-absolute-path</code> / <code>sec-windows-drive</code>
-20. <code>sec-symlink</code> / <code>sec-duplicate-entry</code>
-21. <code>sec-zip-bomb-ratio</code> / <code>sec-total-size-limit</code> / <code>sec-entry-count-limit</code>
-22. <code>sec-malicious-svg</code> — SVG 不进 DOM
-23. <code>sec-html-injection</code> — 内联 HTML 被消毒
-24. <code>sec-sha-mismatch</code> — 摘要不符报 <code>MDPKG-E403</code> 且提示不含「篡改」
-25. <code>sec-external-url</code> — 外链保留 + <code>referrerpolicy</code></p>
-<p><strong>路径/编码（3）</strong>
-26. <code>path-nfd-conflict</code> — NFD/NFC 同名冲突被拒
-27. <code>path-case-conflict</code> — 仅大小写不同的路径被拒
-28. <code>encoding-non-utf8</code> — 非 UTF-8 被拒</p>
-<p><strong>版本/扩展（3）</strong>
-29. <code>version-major-mismatch</code> — 报 <code>MDPKG-E701</code>
-30. <code>ext-required-unsupported</code> — 报 <code>MDPKG-E702</code>，不静默降级
-31. <code>ext-unknown-ignored</code> — 未知字段忽略并 warning</p>
-<p><strong>互操作（2）</strong>
-32. <code>interop-unzip</code> — <code>unzip -l</code> / <code>unzip -p</code> 可列可提
-33. <code>interop-renderer</code> — 导出 Markdown 可被第三方渲染器打开</p>
+<p><strong>Symbol boundaries (4)</strong> 9. <code>symbols-word-boundary</code> — <code>a&#x3C;=b</code>, <code>v1.2-->v2</code>, <code>...</code>, mixed CJK/Latin not falsely triggered 10. <code>symbols-escape</code> — <code>(tm)</code> keeps literal 11. <code>symbols-profile-off</code> — <code>extensions.symbols: "off"</code> disables all conversion 12. <code>symbols-cjk-punct</code> — correct conversion around Chinese punctuation</p>
+<p><strong>Include (7)</strong> 13. <code>include-single</code> / <code>include-multi-level</code> / <code>include-cycle</code> / <code>include-duplicate</code> 14. <code>include-missing</code> / <code>include-outside-root</code> / <code>include-non-markdown</code> 15. <code>include-quoted-path</code> — path with spaces <code>"includes/a b.md"</code> 16. <code>include-indented-not-triggered</code> — 1-space indent does not trigger 17. <code>include-depth-limit</code> / <code>include-size-limit</code> / <code>include-count-limit</code> 18. <code>include-url-rewrite</code> — relative image path rewriting in nested files is correct (including same name in different directories)</p>
+<p><strong>Safety (8)</strong> 19. <code>sec-path-traversal</code> / <code>sec-absolute-path</code> / <code>sec-windows-drive</code> 20. <code>sec-symlink</code> / <code>sec-duplicate-entry</code> 21. <code>sec-zip-bomb-ratio</code> / <code>sec-total-size-limit</code> / <code>sec-entry-count-limit</code> 22. <code>sec-malicious-svg</code> — SVG not inserted into DOM 23. <code>sec-html-injection</code> — inline HTML sanitized 24. <code>sec-sha-mismatch</code> — hash mismatch reports <code>MDPKG-E403</code> and message does not contain "tampering" 25. <code>sec-external-url</code> — external links preserved + <code>referrerpolicy</code></p>
+<p><strong>Path / Encoding (3)</strong> 26. <code>path-nfd-conflict</code> — NFD/NFC same-name conflict rejected 27. <code>path-case-conflict</code> — case-only-different paths rejected 28. <code>encoding-non-utf8</code> — non-UTF-8 rejected</p>
+<p><strong>Version / Extension (3)</strong> 29. <code>version-major-mismatch</code> — reports <code>MDPKG-E701</code> 30. <code>ext-required-unsupported</code> — reports <code>MDPKG-E702</code>, no silent degradation 31. <code>ext-unknown-ignored</code> — unknown field ignored with warning</p>
+<p><strong>Interoperability (2)</strong> 32. <code>interop-unzip</code> — <code>unzip -l</code> / <code>unzip -p</code> can list and extract 33. <code>interop-renderer</code> — exported Markdown openable by third-party renderers</p>
 <hr>
-<h2>附录 C：JSON Schema（落盘为 <code>spec/schema/manifest-1.0.json</code>）</h2>
+<h2>Appendix C: JSON Schema (at <code>spec/schema/manifest-1.0.json</code>)</h2>
 <pre><code class="language-json">{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mdpkg.spec/schema/manifest-1.0.json",
@@ -1008,6 +993,7 @@ li{margin:.3em 0}
 }
 </code></pre>
 <blockquote>
-<p>Schema <strong>不</strong>表达语义约束（路径合法性、NFC、引用闭包、顺序）。语义约束由 <code>validate</code> 按 §5–§7 实现，并对应附录 A 的错误码。</p>
-<p>实现注记（M2 实测）：<code>source_url</code> <strong>不使用</strong> <code>"format": "uri"</code>——ajv 8 的 draft 2020-12 入口（<code>ajv/dist/2020.js</code>）不内置 format，会在 stderr 打印 <code>unknown format "uri" ignored</code>，需额外引入 <code>ajv-formats</code>。为一个可选的 URI 格式校验增加一个依赖不值得，故降为字符串约束。另注意：ajv 8 默认只含 draft-07/2019-09，用 2020-12 必须 <code>import Ajv2020 from 'ajv/dist/2020.js'</code>（ESM 需带 <code>.js</code> 扩展名，否则 <code>ERR_MODULE_NOT_FOUND</code>）。</p>
+<p>The Schema does <strong>not</strong> express semantic constraints (path validity, NFC, reference closure, ordering). Semantic constraints are implemented by <code>validate</code> per §5–§7 and map to the error codes in Appendix A.</p>
+<p>Implementation note (M2 measured): <code>source_url</code> does <strong>not</strong> use <code>"format": "uri"</code>—ajv 8's draft 2020-12 entry point (<code>ajv/dist/2020.js</code>) does not include format by default and prints <code>unknown format "uri" ignored</code> to stderr, requiring an additional <code>ajv-formats</code> import. Adding a dependency for an optional URI format check is not worthwhile, so it is downgraded to a string constraint. Also note: ajv 8 ships with only draft-07/2019-09 by default; for 2020-12 you must <code>import Ajv2020 from 'ajv/dist/2020.js'</code> (ESM requires the <code>.js</code> extension; otherwise <code>ERR_MODULE_NOT_FOUND</code>).</p>
 </blockquote>
+</html>

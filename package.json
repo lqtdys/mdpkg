@@ -1,9 +1,12 @@
 {
   "name": "mdpkg-monorepo",
   "private": true,
+  "type": "module",
   "scripts": {
     "prepare": "husky",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "build:site": "node scripts/build-site.ts",
+    "test:site": "node --test scripts/build-site.test.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,mts,cts}": [
