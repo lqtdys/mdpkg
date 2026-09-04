@@ -4,3 +4,12 @@ memoryos_data/
 .DS_Store
 node_modules/
 .omo/
+
+# AI tool runtime dirs (runtime noise, not source)
+.codebuddy/
+.codex/
+.gemini/
+.omp/
+.opencode/
+.pi/
+openspec/
