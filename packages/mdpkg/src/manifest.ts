@@ -96,7 +96,10 @@ export function collectReferences(md: string, baseDir = ''): { local: string[]; 
     const raw = node.url;
     if (typeof raw !== 'string' || !raw) return;
     if (/^(https?:)?\/\//i.test(raw) || /^(mailto|data|tel):/i.test(raw) || raw.startsWith('#') || raw.startsWith('<')) { external++; return; }
-    const p = decodeURIComponent(raw.split('#')[0].split('?')[0]);
+    const stripped = raw.split('#')[0].split('?')[0];
+    let p: string;
+    try { p = decodeURIComponent(stripped); }
+    catch { p = stripped; } // 非法百分号转义（如 100%.pdf）退回字面值，引用按字面名匹配
     if (!p) return;
     // 到本地 Markdown 的链接是「文档间导航」而非附件，不强制打包——
     // 否则打包一篇 README 会连带要求整个仓库。图片与 pdf/zip 等嵌入附件才必须随包。
@@ -106,7 +109,7 @@ export function collectReferences(md: string, baseDir = ''): { local: string[]; 
   return { local, external, docLinks };
 }
 
-function assertMarkdownEntrypoint(entrypoint: string): void {
+export function assertMarkdownEntrypoint(entrypoint: string): void {
   if (!entrypoint.toLowerCase().endsWith('.md')) throw new MdeError(E.E303, `entrypoint 非 Markdown: ${entrypoint}`);
 }
 

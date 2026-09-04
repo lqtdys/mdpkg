@@ -7,7 +7,7 @@
 //   const out = packMdpkg(r.files, r.manifest ?? undefined);
 //   // out 即为新的 .mdpkg 字节流，可交给浏览器下载
 import { unpack, toBase64, pack } from '../src/zip-core.ts';
-import { validatePackage, buildManifest, type Manifest, type ValidationResult, DEFAULT_ENTRYPOINT } from '../src/manifest.ts';
+import { validatePackage, buildManifest, checkClosure, type Manifest, type ValidationResult, DEFAULT_ENTRYPOINT } from '../src/manifest.ts';
 import { render as renderMarkup, wrapDocument } from '../src/render.ts';
 import { expand } from '../src/include.ts';
 import { MdeError, E } from '../src/errors.ts';
@@ -82,6 +82,8 @@ export function packMdpkg(files: Map<string, Uint8Array>, prevManifest?: Manifes
   const prev = prevManifest ?? readManifest(work);
   work.delete('manifest.json');
   const manifest = buildManifest(work, prev);
+  const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
+  checkClosure(work, entry); // 与 CLI pack 对齐：非 Markdown/缺失入口与残缺引用闭包在此拒绝
   return pack(work, manifest);
 }
 
