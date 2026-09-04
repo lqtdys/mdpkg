@@ -10,11 +10,13 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/*.test.ts",
+    "build:web": "esbuild web/mdpkg-web.ts --bundle --format=esm --platform=browser --outfile=web/mdpkg-web.js && esbuild web/mdpkg-web.ts --bundle --format=iife --platform=browser --global-name=MdpkgWeb --outfile=web/mdpkg-web.iife.js"
   },
   "dependencies": {
     "ajv": "^8.20.0",
     "fflate": "^0.8.3",
+    "js-sha256": "^1.0.0",
     "rehype-sanitize": "^6.0.0",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
@@ -22,5 +24,8 @@
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

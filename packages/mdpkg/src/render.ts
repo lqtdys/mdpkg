@@ -11,6 +11,7 @@ import { visit } from 'unist-util-visit';
 import { symbolsPlugin, guardEscapes } from './symbols.ts';
 import { expand } from './include.ts';
 import { mediaType, assertSupported, DEFAULT_ENTRYPOINT } from './manifest.ts';
+import { toBase64 } from './zip-core.ts';
 import { MdeError, E } from './errors.ts';
 
 export const DEFAULT_MAX_INLINE_BYTES = 50 * 1024 * 1024;
@@ -46,7 +47,7 @@ function assetsPlugin(files: Map<string, Uint8Array>, inline: boolean) {
       const data = files.get(src);
       if (!data) return; // 缺失资源已在 validate 阶段报错，此处不阻断渲染
       // SVG 也走 img+data URI：img 中的 SVG 不执行脚本，安全（规范 §8.2）
-      node.properties.src = `data:${mediaType(src)};base64,${Buffer.from(data).toString('base64')}`;
+      node.properties.src = `data:${mediaType(src)};base64,${toBase64(data)}`;
     });
   };
 }

@@ -160,7 +160,7 @@ async function main() {
     for (const w of r.warnings) process.stderr.write(w + '\n');
     for (const e of r.errors) process.stderr.write(e + '\n');
     if (r.externalCount > 0) {
-      process.stderr.write(`提示: 本包含 ${r.externalCount} 个外部引用，不可完全离线（pack --fetch 可下载）\n`);
+      process.stderr.write(`提示: 本包含 ${r.externalCount} 个外部引用，不可完全离线（v1 不提供 --fetch 下载）\n`);
     }
     if (!r.ok) process.exit(EXIT.VALIDATION);
     process.stdout.write(`validate: OK（${r.warnings.length} 条告警）\n`);

@@ -4,7 +4,7 @@
 // 相对基准：被包含文件 P 中的相对引用 R 重写为 normalize(dirname(P) + '/' + R)，
 // 使展开后文本自洽，render 与 export --expanded 共用同一中间产物。
 import { MdeError, E } from './errors.ts';
-import { normalizePath } from './container.ts';
+import { normalizePath } from './zip-core.ts';
 
 export const INCLUDE_RE = /^<<<\s*(.+?)\s*$/;
 export const INCLUDE_LIMITS = { depth: 32, maxBytes: 10 * 1024 * 1024, maxCount: 1000 };
