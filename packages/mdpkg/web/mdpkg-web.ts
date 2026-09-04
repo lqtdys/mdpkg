@@ -65,7 +65,7 @@ export async function openMdpkg(bytes: Uint8Array, opts: OpenOptions = {}): Prom
 /** 读取入口 Markdown 原文（include 未展开）。预览源码用 */
 export function readEntrySource(files: Map<string, Uint8Array>, entry = DEFAULT_ENTRYPOINT): string {
   const body = files.get(entry);
-  if (!body) throw new MdeError('MDPKG-E303' as never, `entrypoint 不存在: ${entry}`);
+  if (!body) throw new MdeError(E.E303, `entrypoint 不存在: ${entry}`);
   return new TextDecoder().decode(body);
 }
 

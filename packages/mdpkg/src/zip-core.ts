@@ -24,7 +24,7 @@ const ILLEGAL = /(^|[\\/])\.\.([\\/]|$)|\\|\0|^[A-Za-z]:|^[/\\]/u;
 export function normalizePath(raw: string): string {
   if (new TextEncoder().encode(raw).length > MAX_PATH_BYTES) throw new MdeError(E.E204, `路径超长: ${raw.slice(0, 40)}…`);
   // macOS(APFS) 存 NFD，Linux 存 NFC；不归一化会导致跨平台 sha256 失配（M0/S4 实证）
-  const p = raw.normalize('NFC').split('/').join('/');
+  const p = raw.normalize('NFC').replace(/\\/g, '/');
   if (ILLEGAL.test(p)) throw new MdeError(E.E202, `非法路径: ${raw}`);
   const parts = p.split('/').filter((s) => s !== '' && s !== '.');
   if (parts.length === 0 || parts.some((s) => s === '..')) throw new MdeError(E.E202, `非法路径: ${raw}`);
