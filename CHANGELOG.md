@@ -4,7 +4,7 @@
 
 ### Added
 
-- **mdpkg-web 浏览器打包库**：`openMdpkg`（读）/ `packMdpkg`（写，重打包）/ `readEntrySource` 全链路在浏览器可跑，配合演示页 `demo.html` 与单文件演示 `imademo.mdpkg`。
+- **mdpkg-web 浏览器打包库**：`openMdpkg`（读）/ `packMdpkg`（写，重打包）/ `readEntrySource` 全链路在浏览器可跑（含演示页 `demo.html`）。超大演示产物（imademo.*）已从仓库移除，可由 demo.html 重新生成。
 - **zip-core 跨端核心层**：打包/解包/列表/路径规范化抽为浏览器与 Node 共用的零 Node 依赖模块（CLI 入口不变）。
 - **编辑-重打包闭环**：`packMdpkg` 产出与 CLI `pack` 逐字节一致、可重复构建；新增 repack 往返测试。
 - **限额与边界测试**：单文件 200MB 上限（E603）、空包检测（E101）、toBase64 跨分块边界一致性。
