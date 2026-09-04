@@ -1,11 +1,11 @@
 // manifest 生成与校验（M2）
 // 字段归属表（规范 §4.2）：resources/size/sha256/media_type 每次重算；
 // entrypoint/extensions/extensions_required/encoding 有则保留；spec_version 由工具决定，不继承。
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { sha256 as sha256Hex } from 'js-sha256'; // 零依赖同步 SHA-256，浏览器/Node 共用（node:crypto 在浏览器不可用）
 import Ajv2020 from 'ajv/dist/2020.js'; // ajv 8 默认只含 draft-07/2019-09；Schema 用 2020-12 必须走此入口（ESM 需带 .js）
 import { MdeError, E } from './errors.ts';
-import { normalizePath } from './container.ts';
+import { normalizePath } from './zip-core.ts';
+import schema from '../../../spec/schema/manifest-1.0.json' with { type: 'json' };
 import { expand } from './include.ts';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
@@ -29,7 +29,7 @@ export function mediaType(path: string): string {
 }
 
 export function sha256(data: Uint8Array): string {
-  return createHash('sha256').update(data).digest('hex');
+  return sha256Hex(data);
 }
 
 export interface Manifest {
@@ -75,10 +75,7 @@ export function buildManifest(files: Map<string, Uint8Array>, prev?: Manifest): 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 let validator: ReturnType<typeof ajv.compile> | null = null;
 function getValidator() {
-  if (!validator) {
-    const schema = JSON.parse(readFileSync(new URL('../../../spec/schema/manifest-1.0.json', import.meta.url), 'utf8'));
-    validator = ajv.compile(schema);
-  }
+  if (!validator) validator = ajv.compile(schema as never);
   return validator;
 }
 
