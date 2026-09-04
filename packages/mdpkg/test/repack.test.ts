@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pack } from '../src/container.ts';
-import { buildManifest, type Manifest, DEFAULT_ENTRYPOINT } from '../src/manifest.ts';
+import { buildManifest, type Manifest } from '../src/manifest.ts';
 import { openMdpkg, packMdpkg, readEntrySource } from '../web/mdpkg-web.ts';
 
 const enc = new TextEncoder();

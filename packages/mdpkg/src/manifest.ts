@@ -106,10 +106,13 @@ export function collectReferences(md: string, baseDir = ''): { local: string[]; 
   return { local, external, docLinks };
 }
 
+function assertMarkdownEntrypoint(entrypoint: string): void {
+  if (!entrypoint.toLowerCase().endsWith('.md')) throw new MdeError(E.E303, `entrypoint 非 Markdown: ${entrypoint}`);
+}
+
 /** 引用闭包校验：先展开 include 再收集引用，否则会漏掉被包含文档里的图片（规范 §6.2 第 4 条） */
 export function checkClosure(files: Map<string, Uint8Array>, entrypoint: string): { orphans: string[] } {
-  // 与 validatePackage 的 E303 语义对齐（规范 §4.2）：entrypoint 必须是 Markdown 文件
-  if (!entrypoint.toLowerCase().endsWith('.md')) throw new MdeError(E.E303, `entrypoint 非 Markdown: ${entrypoint}`);
+  assertMarkdownEntrypoint(entrypoint);
   if (!files.has(entrypoint)) throw new MdeError(E.E303, `entrypoint 不存在: ${entrypoint}`);
   // expand 同时会校验 include 自身的错误（循环/深度/包外/…）
   const { text, sources } = expand(files, entrypoint);
@@ -176,7 +179,7 @@ export function validatePackage(files: Map<string, Uint8Array>): ValidationResul
   const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
   let externalCount = 0;
   try {
-    if (!entry.toLowerCase().endsWith('.md')) throw new MdeError(E.E303, `entrypoint 非 Markdown: ${entry}`);
+    assertMarkdownEntrypoint(entry);
     const body = actual.get(normalizePath(entry));
     if (!body) throw new MdeError(E.E303, `entrypoint 不存在: ${entry}`);
     const { external } = collectReferences(new TextDecoder().decode(body));
