@@ -62,6 +62,10 @@ node src/cli.ts render demo.mdpkg -o demo.html        # 打开 demo.html 即可�
 | `export --expanded <pkg> -o dir` | include 已展开、相对路径已按包根重写（可被任何 MD 工具打开）   |
 | `diff a.mdpkg b.mdpkg`           | 解包双方后 `diff -ruN`                                         |
 
+## 浏览器库
+
+`packages/mdpkg/web/` 提供 `mdpkg-web` 浏览器端 ESM/IIFE bundle：`openMdpkg` 读包、`packMdpkg` 重打包（与 CLI `pack` 逐字节一致）、`readEntrySource` 读单个条目。`demo.html` 为演示页。构建命令：`npm run build:web`。
+
 ## 格式
 
 `.mdpkg` 是**标准 ZIP**，根目录含 `manifest.json`（版本、入口、资源索引含 sha256）。
@@ -76,7 +80,7 @@ node src/cli.ts render demo.mdpkg -o demo.html        # 打开 demo.html 即可�
 
 ```bash
 cd packages/mdpkg && node --test test/*.test.ts
-# 81 个用例：38 个实现单测 + 43 个 conformance fixture（spec/fixtures/）
+# 102 个用例：100 通过 + 2 跳过
 ```
 
 fixture 是与实现无关的数据（`case.json` + `input/`），任何语言的实现跑通同一批用例即视为合规。

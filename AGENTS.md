@@ -22,6 +22,7 @@ mdpkg/
 ├── comparison.md        # 历史输入：ZIP vs mdpkg-DC 对比矩阵（已降级为 ADR 素材）
 ├── spec/                # 【现行规范】mdpkg-format-spec.md（正文 + 错误码 + fixtures 定义 + Schema）
 ├── packages/mdpkg/        # 【参考实现】Node/TS CLI：errors/container/cli + test
+│   └── web/               # 【浏览器库】mdpkg-web（openMdpkg/packMdpkg/readEntrySource）+ demo.html
 ├── memoryos_data/       # MemoryOS 存储骨架（空占位，勿写入业务内容）
 ├── .pi-glla/            # 代理会话元数据（运行时噪音，勿编辑）
 ├── .omo/                # OMO 会话延续状态（运行时噪音，勿编辑）
@@ -58,7 +59,8 @@ mdpkg/
 
 ```bash
 # 实现（packages/mdpkg/）
-cd packages/mdpkg && npm test                      # node --test test/container.test.ts
+cd packages/mdpkg && npm test                      # node --test test/*.test.ts（102 用例）
+npm run build:web                                  # 构建浏览器库（ESM + IIFE bundle）
 node src/cli.ts pack <dir> -o out.mdpkg            # 打包
 node src/cli.ts list out.mdpkg                     # 列条目（只读 header，不解压）
 node src/cli.ts unpack out.mdpkg -o dir            # 解包
@@ -80,15 +82,16 @@ git status                 # 工作区状态（PLAN_MERGED.md / spec/ / packages
 - 安全风险已在 PLAN_MERGED.md §8/§9 记录：ZIP 解包需防目录遍历、炸弹、符号链接与 include 放大。
 - **全部文档与实现已在提交 ae3ffd7 跟踪提交**。PLAN_MERGED.md / spec/ / packages/ / plans/ 均受版本控制。
 - M0 可行性探针（S1–S4）已全部 PASS，结论见 `plans/mdpkg-review-round2.md` §2.4.1。两个实测陷阱：fflate 的 `size` 是压缩后大小（`originalSize` 才是原始，用错会让炸弹防护失效）；符号转义必须用哨兵法（Markdown 解析会先消费反斜杠）。
-- 规范测试集（conformance fixtures）定义在 `spec/mdpkg-format-spec.md` 附录 B，**尚未落盘**。
+- 规范测试集（conformance fixtures）已落盘：`spec/fixtures/<id>/{case.json,input/}` 共 43 个用例，驱动 `packages/mdpkg/test/fixtures.test.ts`。
 
-## CURRENT STATE（2026-08-30）
+## CURRENT STATE（2026-09-05）
 
 - 立场：`PLAN_MERGED.md`；规范：`spec/mdpkg-format-spec.md`；计划：`plans/mdpkg-review-round2.md`。
 - 已完成：M0 可行性探针（4/4 PASS）、M1 容器骨架（9/9 + `unzip -l` 互操作 + diff 往返）、M2 manifest + `validate`（16/16 + E401 负向）、M3 `render` + core 符号（25/25 + 自包含 HTML）、M4 `include`（35/35 + 多级 include 端到端）。**v1 三项能力（资源随包 / 符号扩展 / 文件包含）至此全部实现。**
-- 已完成 M5：conformance fixtures **40 个用例**（`spec/fixtures/<id>/{case.json,input/}`，驱动 `packages/mdpkg/test/fixtures.test.ts`）。**全量测试 75/75**（35 单测 + 40 fixture）。
+- 已完成 M5：conformance fixtures **43 个用例**（`spec/fixtures/<id>/{case.json,input/}`，驱动 `packages/mdpkg/test/fixtures.test.ts`）。
 - 已完成 M6：规范与实现逐条对齐，补齐 5 处「规范承诺但实现缺失」（E701/E702 版本协商、`--referenced-only`、`export --raw/--expanded`、`mdpkg diff`），`--fetch` 显式标注为 v1 不提供。
-- **M0–M6 全部完成**（M7 为延后项）。测试入口：`cd packages/mdpkg && node --test test/*.test.ts`，**81/81**（38 单测 + 43 conformance fixture）。
-- 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；M7（VS Code 插件）在采用可行性验证前不启动。（`unpack-roundtrip` fixture 已于收尾补齐，规范清单 43 个用例全覆盖）
+- **M0–M6 全部完成**（M7 为延后项）。
+- 已完成 zip-core 跨端核心层 + mdpkg-web 浏览器库（`openMdpkg` / `packMdpkg` / `readEntrySource`）+ repack 往返能力 + 限额与边界回归测试。**全量测试 102 用例：100 通过 + 2 跳过**。
+- 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；M7（VS Code 插件）在采用可行性验证前不启动。
 - 定位：先自用后标准化，3 个月止损判据；VS Code 插件（M7）在采用可行性验证前不启动。
 - 2026-08-31：MDE → mdpkg 统一改名完成（错误码 MDPKG-EXXX，manifest 标识字段 format:"mdpkg"），三仓库拆分：mdpkg（本仓库，格式+CLI）/ md-bundle（网页工具占位，新建）/ clairis（桌面旗舰）

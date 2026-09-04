@@ -62,6 +62,10 @@ Requires Node 22.18+ (runs `.ts` directly via built-in type stripping, no build 
 | `export --expanded <pkg> -o dir` | Includes expanded, relative paths rewritten against the package root (openable by any MD tool)     |
 | `diff a.mdpkg b.mdpkg`           | Unpacks both and runs `diff -ruN`                                                                  |
 
+## Browser library
+
+`packages/mdpkg/web/` ships `mdpkg-web` — an ESM/IIFE bundle for browsers. `openMdpkg` reads a package, `packMdpkg` repacks edits (byte-identical to CLI `pack`), `readEntrySource` reads a single entry. `demo.html` exercises the full flow. Build with `npm run build:web`.
+
 ## Format
 
 `.mdpkg` is a **standard ZIP** whose root contains `manifest.json` (version, entrypoint, and a resource index including sha256).
@@ -76,7 +80,7 @@ Full specification: [`spec/mdpkg-format-spec.md`](spec/mdpkg-format-spec.md) (Ch
 
 ```bash
 cd packages/mdpkg && node --test test/*.test.ts
-# 81 tests: 38 implementation unit tests + 43 conformance fixtures (spec/fixtures/)
+# 102 tests: 100 pass + 2 skip
 ```
 
 Fixtures are implementation-agnostic data (`case.json` + `input/`); any implementation passing the same set is considered conformant.
