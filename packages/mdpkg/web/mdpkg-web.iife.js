@@ -8753,7 +8753,7 @@ var MdpkgWeb = (() => {
   var ILLEGAL = /(^|[\\/])\.\.([\\/]|$)|\\|\0|^[A-Za-z]:|^[/\\]/u;
   function normalizePath(raw2) {
     if (new TextEncoder().encode(raw2).length > MAX_PATH_BYTES) throw new MdeError(E.E204, `\u8DEF\u5F84\u8D85\u957F: ${raw2.slice(0, 40)}\u2026`);
-    const p2 = raw2.normalize("NFC").split("/").join("/");
+    const p2 = raw2.normalize("NFC").replace(/\\/g, "/");
     if (ILLEGAL.test(p2)) throw new MdeError(E.E202, `\u975E\u6CD5\u8DEF\u5F84: ${raw2}`);
     const parts = p2.split("/").filter((s) => s !== "" && s !== ".");
     if (parts.length === 0 || parts.some((s) => s === "..")) throw new MdeError(E.E202, `\u975E\u6CD5\u8DEF\u5F84: ${raw2}`);
@@ -16189,7 +16189,13 @@ var MdpkgWeb = (() => {
         external++;
         return;
       }
-      const p2 = decodeURIComponent(raw2.split("#")[0].split("?")[0]);
+      const stripped = raw2.split("#")[0].split("?")[0];
+      let p2;
+      try {
+        p2 = decodeURIComponent(stripped);
+      } catch {
+        p2 = stripped;
+      }
       if (!p2) return;
       if (node2.type === "link" && /\.md$/i.test(p2)) {
         docLinks++;
@@ -16199,7 +16205,11 @@ var MdpkgWeb = (() => {
     });
     return { local, external, docLinks };
   }
+  function assertMarkdownEntrypoint(entrypoint) {
+    if (!entrypoint.toLowerCase().endsWith(".md")) throw new MdeError(E.E303, `entrypoint \u975E Markdown: ${entrypoint}`);
+  }
   function checkClosure(files, entrypoint) {
+    assertMarkdownEntrypoint(entrypoint);
     if (!files.has(entrypoint)) throw new MdeError(E.E303, `entrypoint \u4E0D\u5B58\u5728: ${entrypoint}`);
     const { text: text8, sources } = expand(files, entrypoint);
     const { local } = collectReferences(text8);
@@ -16253,7 +16263,7 @@ var MdpkgWeb = (() => {
     const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
     let externalCount = 0;
     try {
-      if (!entry.toLowerCase().endsWith(".md")) throw new MdeError(E.E303, `entrypoint \u975E Markdown: ${entry}`);
+      assertMarkdownEntrypoint(entry);
       const body3 = actual.get(normalizePath(entry));
       if (!body3) throw new MdeError(E.E303, `entrypoint \u4E0D\u5B58\u5728: ${entry}`);
       const { external } = collectReferences(new TextDecoder().decode(body3));
@@ -23159,8 +23169,14 @@ var MdpkgWeb = (() => {
   }
   function render(files, opts = {}) {
     const manifestRaw = files.get("manifest.json");
-    const manifest = manifestRaw ? JSON.parse(new TextDecoder().decode(manifestRaw)) : {};
+    let manifest;
+    try {
+      manifest = manifestRaw ? JSON.parse(new TextDecoder().decode(manifestRaw)) : {};
+    } catch (e) {
+      throw new MdeError(E.E302, `manifest.json \u4E0D\u662F\u5408\u6CD5 JSON: ${e.message}`);
+    }
     const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
+    assertMarkdownEntrypoint(entry);
     assertSupported(manifest);
     const body3 = files.get(entry);
     if (!body3) throw new MdeError(E.E303, `entrypoint \u4E0D\u5B58\u5728: ${entry}`);
@@ -23254,7 +23270,7 @@ ${bodyHtml}
   }
   function readEntrySource(files, entry = DEFAULT_ENTRYPOINT) {
     const body3 = files.get(entry);
-    if (!body3) throw new MdeError("MDPKG-E303", `entrypoint \u4E0D\u5B58\u5728: ${entry}`);
+    if (!body3) throw new MdeError(E.E303, `entrypoint \u4E0D\u5B58\u5728: ${entry}`);
     return new TextDecoder().decode(body3);
   }
   function readManifest(files) {
@@ -23271,6 +23287,8 @@ ${bodyHtml}
     const prev = prevManifest ?? readManifest(work);
     work.delete("manifest.json");
     const manifest = buildManifest(work, prev);
+    const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
+    checkClosure(work, entry);
     return pack(work, manifest);
   }
   return __toCommonJS(mdpkg_web_exports);
