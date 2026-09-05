@@ -8812,6 +8812,33 @@ var MdpkgWeb = (() => {
     }
     return zipSync(zipped, { mtime: MDE_EPOCH });
   }
+  function chunkZIP(data, maxEntries) {
+    if (maxEntries <= 0 || data.length < 30) return [data];
+    const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    const chunks = [];
+    let chunkStart = 0, count = 0, i2 = 0;
+    while (i2 <= data.length - 4) {
+      if (data[i2] !== 80 || data[i2 + 1] !== 75 || data[i2 + 2] !== 3 || data[i2 + 3] !== 4) {
+        i2++;
+        continue;
+      }
+      if (i2 + 30 > data.length) return [data];
+      const nameLen = dv.getUint16(i2 + 26, true);
+      const extraLen = dv.getUint16(i2 + 28, true);
+      const compSize = dv.getUint32(i2 + 18, true);
+      const entryEnd = i2 + 30 + nameLen + extraLen + compSize;
+      if (entryEnd > data.length) return [data];
+      count++;
+      if (count >= maxEntries && entryEnd < data.length) {
+        chunks.push(data.subarray(chunkStart, entryEnd));
+        chunkStart = entryEnd;
+        count = 0;
+      }
+      i2 = entryEnd;
+    }
+    if (chunkStart < data.length) chunks.push(data.subarray(chunkStart));
+    return chunks.length > 0 ? chunks : [data];
+  }
   function unpack(data) {
     return new Promise((res, rej) => {
       const out = /* @__PURE__ */ new Map();
@@ -8832,15 +8859,14 @@ var MdpkgWeb = (() => {
           total += orig;
           if (total > LIMITS.total) throw new MdeError(E.E604, `\u603B\u89E3\u538B\u8D85\u8FC7 ${LIMITS.total / 1048576}MB`);
           const path2 = normalizePath(f.name);
-          const chunks = [];
+          const chunks2 = [];
           pending++;
           f.ondata = (err2, chunk, final) => {
             if (err2) return rej(new MdeError(E.E101, String(err2)));
-            chunks.push(chunk);
+            chunks2.push(chunk);
             if (final) {
-              out.set(path2, concat(chunks));
+              out.set(path2, concat(chunks2));
               pending--;
-              finish();
             }
           };
           f.start();
@@ -8850,7 +8876,8 @@ var MdpkgWeb = (() => {
       });
       uz.register(UnzipInflate);
       uz.register(UnzipPassThrough);
-      uz.push(data, true);
+      const chunks = chunkZIP(data, 1e3);
+      for (let i2 = 0; i2 < chunks.length; i2++) uz.push(chunks[i2], i2 === chunks.length - 1);
       finish();
     });
   }
@@ -16118,6 +16145,27 @@ var MdpkgWeb = (() => {
   // src/manifest.ts
   var SPEC_VERSION = "1.0";
   var DEFAULT_ENTRYPOINT = "document.md";
+  function inferEntrypoint(files) {
+    const candidates = [...files.keys()].filter((p2) => {
+      if (!p2.toLowerCase().endsWith(".md")) return false;
+      if (p2.split("/").some((seg) => seg.startsWith("."))) return false;
+      return true;
+    });
+    if (candidates.length === 0) {
+      throw new MdeError(E.E303, "entrypoint \u4E0D\u5B58\u5728\uFF08\u63A8\u65AD\u5931\u8D25\uFF09: \u65E0 Markdown \u6587\u4EF6");
+    }
+    const depth = (p2) => p2.split("/").length;
+    const shallowest = (paths) => [...paths].sort((a, b) => depth(a) - depth(b) || (a < b ? -1 : a > b ? 1 : 0));
+    for (const name of ["document.md", "README.md", "README.zh-CN.md"]) {
+      const matches = candidates.filter((p2) => p2.split("/").pop() === name);
+      if (matches.length > 0) return shallowest(matches)[0];
+    }
+    const root5 = candidates.filter((p2) => !p2.includes("/"));
+    if (root5.length === 0) {
+      throw new MdeError(E.E303, "entrypoint \u4E0D\u5B58\u5728\uFF08\u63A8\u65AD\u5931\u8D25\uFF09: \u6839\u76EE\u5F55\u65E0 Markdown \u6587\u4EF6");
+    }
+    return root5.sort((a, b) => a < b ? -1 : a > b ? 1 : 0)[0];
+  }
   var MEDIA = {
     md: "text/markdown",
     markdown: "text/markdown",
@@ -23175,9 +23223,10 @@ var MdpkgWeb = (() => {
     } catch (e) {
       throw new MdeError(E.E302, `manifest.json \u4E0D\u662F\u5408\u6CD5 JSON: ${e.message}`);
     }
-    const entry = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
+    const hasManifest = manifestRaw !== void 0;
+    const entry = hasManifest && manifest.entrypoint ? manifest.entrypoint : inferEntrypoint(files);
     assertMarkdownEntrypoint(entry);
-    assertSupported(manifest);
+    if (hasManifest) assertSupported(manifest);
     const body3 = files.get(entry);
     if (!body3) throw new MdeError(E.E303, `entrypoint \u4E0D\u5B58\u5728: ${entry}`);
     const totalBytes = [...files.entries()].reduce((n, [p2, d]) => p2 === "manifest.json" ? n : n + d.length, 0);
@@ -23244,6 +23293,7 @@ ${bodyHtml}
         manifest = null;
       }
     }
+    const unverified = manifestRaw === void 0;
     const validation = validatePackage(files);
     try {
       const r = render(files, { inline: true, symbols: opts.symbols });
@@ -23255,7 +23305,8 @@ ${bodyHtml}
         validation,
         html: wrapDocument(title, r.html),
         degraded: r.degraded,
-        error: null
+        error: null,
+        unverified
       };
     } catch (e) {
       return {
@@ -23264,7 +23315,8 @@ ${bodyHtml}
         validation,
         html: null,
         degraded: false,
-        error: e instanceof MdeError ? e.message : String(e)
+        error: e instanceof MdeError ? e.message : String(e),
+        unverified
       };
     }
   }
