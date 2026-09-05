@@ -75,6 +75,44 @@ export function pack(files: Map<string, Uint8Array>, manifest?: object): Uint8Ar
   return zipSync(zipped, { mtime: MDE_EPOCH });
 }
 
+/**
+ * 按 local file header 边界将 ZIP 切块，使每块条目数 ≤ maxEntries。
+ * 目的：fflate Unzip 单次 push 递归解析在 ~2108 条目处静默截断（issue #1），
+ *       分块后每块递归深度 ≤ 块内条目数，避免栈溢出丢内容。
+ * 退化：任何解析异常（不完整 header、长度溢出）→ 返回 [data]（整块，保持既有行为）。
+ */
+function chunkZIP(data: Uint8Array, maxEntries: number): Uint8Array[] {
+  if (maxEntries <= 0 || data.length < 30) return [data];
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const chunks: Uint8Array[] = [];
+  let chunkStart = 0, count = 0, i = 0;
+
+  while (i <= data.length - 4) {
+    // 找 local file header 签名 PK\x03\x04
+    if (data[i] !== 0x50 || data[i + 1] !== 0x4b || data[i + 2] !== 0x03 || data[i + 3] !== 0x04) { i++; continue; }
+    // 不完整 header → 退化
+    if (i + 30 > data.length) return [data];
+    const nameLen = dv.getUint16(i + 26, true);
+    const extraLen = dv.getUint16(i + 28, true);
+    const compSize = dv.getUint32(i + 18, true);
+    const entryEnd = i + 30 + nameLen + extraLen + compSize;
+    // 长度溢出 → 退化（用真实字段跳过条目体，防内容中 PK\x03\x04 伪签名误导）
+    if (entryEnd > data.length) return [data];
+    count++;
+    // 达到 maxEntries 且还有后续数据（central dir/EOCD）→ 在条目边界切一块
+    if (count >= maxEntries && entryEnd < data.length) {
+      chunks.push(data.subarray(chunkStart, entryEnd));
+      chunkStart = entryEnd;
+      count = 0;
+    }
+    i = entryEnd; // 跳到条目末尾继续扫描
+  }
+
+  // 最后一块包含 central directory + EOCD（必须包含全部剩余字节）
+  if (chunkStart < data.length) chunks.push(data.subarray(chunkStart));
+  return chunks.length > 0 ? chunks : [data];
+}
+
 /** 解包：流式读取，边读边计数，超限立即中断（不解压、不落盘） */
 export function unpack(data: Uint8Array): Promise<Map<string, Uint8Array>> {
   return new Promise((res, rej) => {
@@ -94,17 +132,22 @@ export function unpack(data: Uint8Array): Promise<Map<string, Uint8Array>> {
         const path = normalizePath(f.name);
         const chunks: Uint8Array[] = [];
         pending++;
+        // 注意：ondata 内不再调用 finish()——分块 push 下 pending 可能在块间归零，
+        // 若此时 resolve 会跳过后续块的内容。finish() 仅在全部 push 结束后调用一次。
         f.ondata = (err, chunk, final) => {
           if (err) return rej(new MdeError(E.E101, String(err)));
           chunks.push(chunk);
-          if (final) { out.set(path, concat(chunks)); pending--; finish(); }
+          if (final) { out.set(path, concat(chunks)); pending--; }
         };
         f.start();
       } catch (e) { rej(e); }
     });
     uz.register(UnzipInflate);
     uz.register(UnzipPassThrough);
-    uz.push(data, true);
+    // 分块 push：避免 fflate Unzip 递归解析在 ~2108 条目处静默截断（issue #1）
+    // 取 1000（远低于 2108 栈限，为回调/测试运行器等保留充足栈空间）
+    const chunks = chunkZIP(data, 1000);
+    for (let i = 0; i < chunks.length; i++) uz.push(chunks[i], i === chunks.length - 1);
     finish();
   });
 }
@@ -127,14 +170,17 @@ export function list(data: Uint8Array): Promise<{ path: string; size: number; co
       try {
         items.push({ path: normalizePath(f.name), size: f.originalSize, compressed: f.size });
         pending++;
-        // 只读 header：消费流但不保留数据
-        f.ondata = (_err, _chunk, final) => { if (final) { pending--; finish(); } };
+        // 只读 header：消费流但不保留数据（finish 仅在全部 push 结束后调用）
+        f.ondata = (_err, _chunk, final) => { if (final) { pending--; } };
         f.start();
       } catch (e) { rej(e); }
     });
     uz.register(UnzipInflate);
     uz.register(UnzipPassThrough);
-    uz.push(data, true);
+    // 分块 push：避免 fflate Unzip 递归解析在 ~2108 条目处静默截断（issue #1）
+    // 取 1000（远低于 2108 栈限，为回调/测试运行器等保留充足栈空间）
+    const chunks = chunkZIP(data, 1000);
+    for (let i = 0; i < chunks.length; i++) uz.push(chunks[i], i === chunks.length - 1);
     finish();
   });
 }
