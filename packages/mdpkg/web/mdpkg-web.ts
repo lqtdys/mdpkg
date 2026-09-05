@@ -27,6 +27,8 @@ export interface OpenResult {
   degraded: boolean;
   /** 渲染阶段错误（校验错误见 validation.errors） */
   error: string | null;
+  /** 来源未校验（缺少 manifest.json、按规则推断入口）——与 degraded 维度不同：degraded=体积降级，unverified=来源未校验 */
+  unverified: boolean;
 }
 
 /** 打开 .mdpkg：解包 → 校验 → 渲染。任何一步硬错误（非 ZIP 等）直接 throw MdeError */
@@ -39,6 +41,7 @@ export async function openMdpkg(bytes: Uint8Array, opts: OpenOptions = {}): Prom
   if (manifestRaw) {
     try { manifest = JSON.parse(new TextDecoder().decode(manifestRaw)); } catch { manifest = null; }
   }
+  const unverified = manifestRaw === undefined;
 
   const validation = validatePackage(files);
 
@@ -51,6 +54,7 @@ export async function openMdpkg(bytes: Uint8Array, opts: OpenOptions = {}): Prom
       html: wrapDocument(title, r.html),
       degraded: r.degraded,
       error: null,
+      unverified,
     };
   } catch (e) {
     return {
@@ -58,6 +62,7 @@ export async function openMdpkg(bytes: Uint8Array, opts: OpenOptions = {}): Prom
       html: null,
       degraded: false,
       error: e instanceof MdeError ? e.message : String(e),
+      unverified,
     };
   }
 }

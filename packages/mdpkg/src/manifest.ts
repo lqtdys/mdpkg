@@ -14,6 +14,41 @@ import { visit } from 'unist-util-visit';
 export const SPEC_VERSION = '1.0';
 export const DEFAULT_ENTRYPOINT = 'document.md';
 
+/**
+ * 推断入口（lenient-open spec「入口推断规则」）。
+ * 无 manifest.json 时按确定性规则选 entrypoint：
+ *   document.md > README.md > README.zh-CN.md > 根目录其余 .md 字典序首。
+ * 候选排除含隐藏段（任一路径段以 . 开头）的路径；无 .md 抛 E303。
+ */
+export function inferEntrypoint(files: Map<string, Uint8Array>): string {
+  const candidates = [...files.keys()].filter((p) => {
+    if (!p.toLowerCase().endsWith('.md')) return false;
+    if (p.split('/').some((seg) => seg.startsWith('.'))) return false; // 排除隐藏路径
+    return true;
+  });
+
+  if (candidates.length === 0) {
+    throw new MdeError(E.E303, 'entrypoint 不存在（推断失败）: 无 Markdown 文件');
+  }
+
+  const depth = (p: string) => p.split('/').length;
+  const shallowest = (paths: string[]) =>
+    [...paths].sort((a, b) => depth(a) - depth(b) || (a < b ? -1 : a > b ? 1 : 0));
+
+  // 默认名全树查找（按文件名匹配，取最浅；同深度取码位先序）
+  for (const name of ['document.md', 'README.md', 'README.zh-CN.md']) {
+    const matches = candidates.filter((p) => p.split('/').pop() === name);
+    if (matches.length > 0) return shallowest(matches)[0];
+  }
+
+  // 兜底：仅根目录（无 /）的 .md 按码位字典序
+  const root = candidates.filter((p) => !p.includes('/'));
+  if (root.length === 0) {
+    throw new MdeError(E.E303, 'entrypoint 不存在（推断失败）: 根目录无 Markdown 文件');
+  }
+  return root.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0];
+}
+
 const MEDIA: Record<string, string> = {
   md: 'text/markdown', markdown: 'text/markdown', json: 'application/json',
   txt: 'text/plain', csv: 'text/csv',

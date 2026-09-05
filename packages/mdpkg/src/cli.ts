@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pack, unpack, list, collectFiles, normalizePath } from './container.ts';
-import { buildManifest, validatePackage, checkClosure, collectReferences, DEFAULT_ENTRYPOINT } from './manifest.ts';
+import { buildManifest, validatePackage, checkClosure, collectReferences, inferEntrypoint, DEFAULT_ENTRYPOINT } from './manifest.ts';
 import { expand } from './include.ts';
 import { render, wrapDocument, DEFAULT_MAX_INLINE_BYTES } from './render.ts';
 import { MdeError, EXIT, E } from './errors.ts';
@@ -89,21 +89,35 @@ async function main() {
     if (!pkg || !mode || !out) die('用法: mdpkg export (--raw | --expanded) <file.mdpkg> -o <dir>', EXIT.USAGE);
     const files = await unpack(readPkg(pkg));
     const manifest = files.has('manifest.json') ? JSON.parse(new TextDecoder().decode(files.get('manifest.json')!)) : {};
-    const entry: string = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
-    for (const [p, data] of files) {
-      if (p === 'manifest.json') continue;
-      if (mode === 'expanded' && p === entry) continue; // 入口单独写展开后的版本
-      const dest = join(out, p);
-      mkdirSync(dirname(dest), { recursive: true });
-      writeFileSync(dest, data);
-    }
     if (mode === 'expanded') {
+      // expanded 需要真实入口（展开入口文档），无 md 时 E303 合理
+      const entry = manifest.entrypoint ?? inferEntrypoint(files);
+      if (!files.has('manifest.json')) {
+        process.stderr.write(`提示: 未校验来源（缺少 manifest.json），按规则推断入口 ${entry}\n`);
+      }
+      for (const [p, data] of files) {
+        if (p === 'manifest.json') continue;
+        if (p === entry) continue; // 入口单独写展开后的版本
+        const dest = join(out, p);
+        mkdirSync(dirname(dest), { recursive: true });
+        writeFileSync(dest, data);
+      }
       const { text } = expand(files, entry);
       const dest = join(out, entry);
       mkdirSync(dirname(dest), { recursive: true });
       writeFileSync(dest, new TextEncoder().encode(text));
       process.stdout.write(`export --expanded: 入口已展开（include 已内联、相对路径已按包根重写）→ ${out}\n`);
     } else {
+      // raw 只导出文件树，不需要入口；无 manifest 时保留提示但不含入口名
+      if (!files.has('manifest.json')) {
+        process.stderr.write(`提示: 未校验来源（缺少 manifest.json）\n`);
+      }
+      for (const [p, data] of files) {
+        if (p === 'manifest.json') continue;
+        const dest = join(out, p);
+        mkdirSync(dirname(dest), { recursive: true });
+        writeFileSync(dest, data);
+      }
       process.stdout.write(`export --raw: 结构保持、文本未改 → ${out}\n`);
     }
     return;
@@ -131,6 +145,9 @@ async function main() {
     const pkg = rest[0];
     if (!pkg) die('用法: mdpkg render <file.mdpkg> [-o out.html] [--inline | --dir]', EXIT.USAGE);
     const files = await unpack(readPkg(pkg));
+    if (!files.has('manifest.json')) {
+      process.stderr.write(`提示: 未校验来源（缺少 manifest.json），按规则推断入口 ${inferEntrypoint(files)}\n`);
+    }
     const r = render(files, { inline: 'inline' in values, dir: 'dir' in values });
     const target = resolve(out ?? pkg.replace(/\.mdpkg$/i, '.html'));
     mkdirSync(dirname(target), { recursive: true });

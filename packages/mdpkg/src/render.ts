@@ -10,7 +10,7 @@ import rehypeStringify from 'rehype-stringify';
 import { visit } from 'unist-util-visit';
 import { symbolsPlugin, guardEscapes } from './symbols.ts';
 import { expand } from './include.ts';
-import { mediaType, assertSupported, assertMarkdownEntrypoint, DEFAULT_ENTRYPOINT } from './manifest.ts';
+import { mediaType, assertSupported, assertMarkdownEntrypoint, inferEntrypoint } from './manifest.ts';
 import { toBase64 } from './zip-core.ts';
 import { MdeError, E } from './errors.ts';
 
@@ -57,9 +57,11 @@ export function render(files: Map<string, Uint8Array>, opts: RenderOptions = {})
   let manifest: { entrypoint?: string; [k: string]: unknown };
   try { manifest = manifestRaw ? JSON.parse(new TextDecoder().decode(manifestRaw)) : {}; }
   catch (e) { throw new MdeError(E.E302, `manifest.json 不是合法 JSON: ${(e as Error).message}`); }
-  const entry: string = manifest.entrypoint ?? DEFAULT_ENTRYPOINT;
+  const hasManifest = manifestRaw !== undefined;
+  // 有 manifest 且含 entrypoint 时走 manifest；否则推断（lenient-open）
+  const entry: string = hasManifest && manifest.entrypoint ? manifest.entrypoint : inferEntrypoint(files);
   assertMarkdownEntrypoint(entry); // 非 Markdown 入口在此拒绝（E303），与 validatePackage 对齐
-  assertSupported(manifest as never); // 版本协商：主版本不符报 E701，必需扩展不支持报 E702
+  if (hasManifest) assertSupported(manifest as never); // 有 manifest 才做版本协商（E701/E702）
   const body = files.get(entry);
   if (!body) throw new MdeError(E.E303, `entrypoint 不存在: ${entry}`);
 
