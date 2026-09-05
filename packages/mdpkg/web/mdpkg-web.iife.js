@@ -8750,6 +8750,7 @@ var MdpkgWeb = (() => {
     ratio: 1e3
     // 压缩比
   };
+  var ZIP_CHUNK_ENTRIES = 1e3;
   var ILLEGAL = /(^|[\\/])\.\.([\\/]|$)|\\|\0|^[A-Za-z]:|^[/\\]/u;
   function normalizePath(raw2) {
     if (new TextEncoder().encode(raw2).length > MAX_PATH_BYTES) throw new MdeError(E.E204, `\u8DEF\u5F84\u8D85\u957F: ${raw2.slice(0, 40)}\u2026`);
@@ -8876,7 +8877,7 @@ var MdpkgWeb = (() => {
       });
       uz.register(UnzipInflate);
       uz.register(UnzipPassThrough);
-      const chunks = chunkZIP(data, 1e3);
+      const chunks = chunkZIP(data, ZIP_CHUNK_ENTRIES);
       for (let i2 = 0; i2 < chunks.length; i2++) uz.push(chunks[i2], i2 === chunks.length - 1);
       finish();
     });
@@ -23295,10 +23296,17 @@ ${bodyHtml}
     }
     const unverified = manifestRaw === void 0;
     const validation = validatePackage(files);
+    const hasManifest = manifestRaw !== void 0;
+    const resolvedEntry = hasManifest && manifest?.entrypoint ? manifest.entrypoint : (() => {
+      try {
+        return inferEntrypoint(files);
+      } catch {
+        return "";
+      }
+    })();
     try {
       const r = render(files, { inline: true, symbols: opts.symbols });
-      const entry = manifest?.entrypoint ?? DEFAULT_ENTRYPOINT;
-      const title = entry.split("/").pop() ?? entry;
+      const title = resolvedEntry.split("/").pop() ?? resolvedEntry;
       return {
         files,
         manifest,
@@ -23306,7 +23314,8 @@ ${bodyHtml}
         html: wrapDocument(title, r.html),
         degraded: r.degraded,
         error: null,
-        unverified
+        unverified,
+        entry: resolvedEntry
       };
     } catch (e) {
       return {
@@ -23316,7 +23325,8 @@ ${bodyHtml}
         html: null,
         degraded: false,
         error: e instanceof MdeError ? e.message : String(e),
-        unverified
+        unverified,
+        entry: resolvedEntry
       };
     }
   }

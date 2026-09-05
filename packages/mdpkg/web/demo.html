@@ -107,11 +107,13 @@ function showError(e) {
 function showResult(r) {
   statusEl.textContent = '';
   panel.style.display = 'block';
+  if (r.unverified) statusEl.textContent = '⚠ 未校验来源（缺少 manifest.json），按规则推断入口 ' + (r.entry || '—');
 
   const v = r.validation;
   const badge = document.getElementById('vbadge');
   badge.className = 'badge ' + (v.ok ? 'ok' : 'bad');
-  badge.textContent = v.ok ? 'OK' : 'FAIL';
+  badge.textContent = v.ok ? 'OK' : (r.unverified ? '未校验' : 'FAIL');
+  badge.title = r.unverified ? '缺少 manifest.json，内容已按推断入口渲染' : '';
   document.getElementById('verrors').innerHTML = v.errors.map((e) => '<li>' + esc(e) + '</li>').join('');
   document.getElementById('vwarnings').innerHTML = v.warnings.map((w) => '<li>' + esc(w) + '</li>').join('');
 
