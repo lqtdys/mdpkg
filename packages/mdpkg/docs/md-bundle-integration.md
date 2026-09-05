@@ -2,6 +2,21 @@
 
 > 本指南面向 md-bundle 等网页工具，说明如何调用 `mdpkg` 的浏览器端 API 完成 `.mdpkg` 的打开、编辑、保存闭环。
 
+下表是 md-bundle 可复用的全部能力速查：
+
+| API | 场景 | 示例位置 |
+|---|---|---|
+| `openMdpkg(bytes)` | 打开 .mdpkg / .zip 包 | [最小闭环示例](#最小闭环示例) |
+| `openMarkdown(name, bytes)` | 直接渲染单个 .md 文件 | [核心 API](#核心-api) |
+| `openFiles(files)` | 目录/多条目收集后统一打开 | [目录场景：收集目录树 → openFiles](#目录场景收集目录树--openfiles) |
+| `packMdpkg(files, prevManifest?)` | 编辑后重打包 | [最小闭环示例](#最小闭环示例) |
+| `readEntrySource(files, entry)` | 读取入口源码 | [核心 API](#核心-api) |
+| `toMarkdown(files)` | 导出展开后 Markdown | [toMarkdown：导出展开后 Markdown](#tomarkdown导出展开后-markdown) |
+| `toHtml(files)` | 导出自包含 HTML | [toHtml：导出自包含 HTML](#tohtml导出自包含-html) |
+| `toDocx(files, opts?, onWarning?)` | 导出 OOXML 文档 | [toDocx：导出 OOXML 文档](#todocx导出-ooxml-文档) |
+| `toZip(files, opts?)` | 导出标准 zip 交付物 | [toZip：导出标准 zip 交付物](#tozip导出标准-zip-交付物) |
+| `expand` / `buildManifest` / `toBase64` / `MdeError` | 工具函数 | [核心 API](#核心-api) |
+
 ## 核心 API
 
 ```ts
