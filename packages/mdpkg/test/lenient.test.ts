@@ -159,6 +159,33 @@ test('openMdpkg 裸 zip 无 md: 返回 error 分支且 unverified:true', async (
   assert.ok(r.error?.includes('MDPKG-E303'), `error 应含 MDPKG-E303: ${r.error}`);
 });
 
+test('openMdpkg 裸 zip: entry 为推断入口 + title 用推断名', async () => {
+  const bytes = bareZip({ 'chapter1.md': strToU8('# 第一章\n') });
+  const r = await openMdpkg(bytes);
+  assert.equal(r.entry, 'chapter1.md', 'entry 应为推断入口 chapter1.md');
+  assert.ok(r.html?.includes('<title>chapter1.md</title>'), `title 应为 chapter1.md，实际 html 前段: ${r.html?.slice(0, 300)}`);
+  assert.ok(!r.html?.includes('document.md'), '不应出现 document.md');
+});
+
+test('openMdpkg 带 manifest: entry 为 manifest.entrypoint', async () => {
+  const { pack } = await import('../src/container.ts');
+  const { buildManifest } = await import('../src/manifest.ts');
+  const files = new Map([
+    ['document.md', enc('# 默认文档\n')],
+    ['custom.md', enc('# 自定义入口\n')],
+  ]);
+  const bytes = pack(files, buildManifest(files, { entrypoint: 'custom.md' }));
+  const r = await openMdpkg(bytes);
+  assert.equal(r.entry, 'custom.md', 'entry 应为 manifest 指定的 custom.md');
+  assert.ok(r.html?.includes('<title>custom.md</title>'), `title 应为 custom.md，实际 html 前段: ${r.html?.slice(0, 300)}`);
+});
+
+test('openMdpkg 裸 zip 无 md: entry 为空串（错误分支）', async () => {
+  const bytes = bareZip({ 'image.png': new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]) });
+  const r = await openMdpkg(bytes);
+  assert.equal(r.entry, '', '错误分支 entry 应为空串');
+});
+
 // --- 3.3 CLI stderr 提示 ---
 
 test('CLI render 裸 zip 成功且 stderr 含「未校验来源」', () => {
