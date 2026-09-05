@@ -79,6 +79,28 @@ export function pack(files: Map<string, Uint8Array>, manifest?: object): Uint8Ar
 }
 
 /**
+ * 打包（不注入 manifest.json）：docx 等非 mdpkg 容器用。
+ * 与 pack() 相同的确定性规则（固定顺序 + 固定 mtime + 逐条目压缩级别），
+ * 但输出是纯用户文件集，不附加任何元数据条目。
+ */
+export function packRaw(files: Map<string, Uint8Array>): Uint8Array {
+  const seen = new Map<string, string>(); // 归一化路径 → 原始路径
+  const zipped: Record<string, [Uint8Array, { level: number }]> = {};
+  // 按路径码位升序（fflate 按插入顺序写条目，不自动排序）
+  const order = [...files.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  for (const p of order) {
+    const key = normalizePath(p);
+    const lower = key.toLowerCase();
+    const prev = seen.get(lower);
+    if (prev !== undefined && prev !== key) throw new MdeError(E.E201, `路径冲突（仅大小写不同）: ${prev} vs ${key}`);
+    seen.set(lower, key);
+    const ext = key.split('.').pop()?.toLowerCase() ?? '';
+    zipped[key] = [files.get(p)!, { level: STORE_EXT.has(ext) ? 0 : 9 }];
+  }
+  return zipSync(zipped, { mtime: MDE_EPOCH });
+}
+
+/**
  * 按 local file header 边界将 ZIP 切块，使每块条目数 ≤ maxEntries。
  * 目的：fflate Unzip 单次 push 递归解析在 ~2108 条目处静默截断（issue #1），
  *       分块后每块递归深度 ≤ 块内条目数，避免栈溢出丢内容。

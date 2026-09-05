@@ -66,29 +66,48 @@ test('inferEntrypoint: 子目录 document.md 优先于根 README（全树最浅�
   assert.equal(inferEntrypoint(files), 'docs/document.md');
 });
 
-test('inferEntrypoint: 无默认名时根目录字典序首', () => {
+test('inferEntrypoint: 无默认名时最浅优先（根目录同深码位序首）', () => {
   const files = new Map([
     ['chapter2.md', enc('# 二')],
     ['chapter1.md', enc('# 一')],
     ['docs/notes.md', enc('# 笔记')],
   ]);
+  // 根目录文件深度 1 < docs/notes.md 深度 2，先取根目录；同深按码位序 chapter1.md 在前
   assert.equal(inferEntrypoint(files), 'chapter1.md');
 });
 
-test('inferEntrypoint: 隐藏路径不参与候选', () => {
+test('inferEntrypoint: 子目录任意名 md 可推断（docs/guide.md）', () => {
+  const files = new Map([
+    ['docs/guide.md', enc('# 指南')],
+  ]);
+  // 修复前仅查根目录 → E303；现在任意深度候选均可推断
+  assert.equal(inferEntrypoint(files), 'docs/guide.md');
+});
+
+test('inferEntrypoint: 子目录多文件取最浅（深度优先）', () => {
+  const files = new Map([
+    ['sub/a.md', enc('# A')],
+    ['docs/deep/b.md', enc('# B')],
+  ]);
+  // sub/a.md 深度 2 < docs/deep/b.md 深度 3 → 取浅者
+  assert.equal(inferEntrypoint(files), 'sub/a.md');
+});
+
+test('inferEntrypoint: 同深度按码位序（a.md < b.md）', () => {
+  const files = new Map([
+    ['sub/b.md', enc('# B')],
+    ['sub/a.md', enc('# A')],
+  ]);
+  assert.equal(inferEntrypoint(files), 'sub/a.md');
+});
+
+test('inferEntrypoint: 隐藏路径不参与候选（含子目录隐藏段）', () => {
   const files = new Map([
     ['.hidden.md', enc('# 隐藏')],
+    ['dir/.x.md', enc('# 子目录隐藏')],
     ['visible.md', enc('# 可见')],
   ]);
   assert.equal(inferEntrypoint(files), 'visible.md');
-});
-
-test('inferEntrypoint: 子目录 md 不作为字典序兜底候选', () => {
-  const files = new Map([
-    ['docs/only.md', enc('# 仅子目录')],
-  ]);
-  // 根目录无 .md → 抛 E303
-  assert.throws(() => inferEntrypoint(files), (e: unknown) => e instanceof MdeError && e.code === E.E303);
 });
 
 test('inferEntrypoint: 无 md 文件抛 E303（消息含「推断」）', () => {
