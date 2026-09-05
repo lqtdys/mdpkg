@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0.0] - 2026-09-05
+
+### Added
+
+- **docx 导出**：`render --format docx` / 浏览器 `toDocx`——自研最小 OOXML 写入器，位图资源嵌入 `word/media/`，SVG 降级为 alt 文本 + 警告；可被 Word / LibreOffice / WPS / Pages 直接打开。
+- **zip 交付物导出**：`export --zip` / 浏览器 `toZip`——展开后 Markdown + 全部资源 + README 的标准 zip（无 manifest，交付给普通用户）。
+- **md 导出**：`export --md` / 浏览器 `toMarkdown`——展开后入口文档单文件（include 内联、路径重写、符号保持源文本）。
+- **html 导出 API**：浏览器 `toHtml`——自包含单文件 HTML（与 `openMdpkg().html` 同源）。
+- **文件夹/多条目直开**：浏览器拖入文件夹（含同级附件，图片内联显示）或 md+附件多选；`openFiles` 统一 Map 渲染入口；`openMarkdown` 单 .md 直开。
+- **相对引用解析**：`../assets/a.png` 与 `./` 引用按文档目录语义解析（含中文路径），渲染与校验（checkClosure）一致。
+- **demo 导出栏**：打开包后四格式导出按钮（.md / .mdpkg / .html / .zip）+ 打印 / 另存为 PDF（`window.print()` 兜底）。
+
+### Fixed
+
+- **入口引用双重前缀**：入口文档引用不再按文档目录重复拼接（带顶层文件夹名的引用如 `ima笔记使用指南/attachment/1.gif` 可正确匹配）。
+- **packMdpkg 入口推断**：lenient / 单 md 包重打包不再报 E303（回退 `inferEntrypoint`）。
+- **中文路径 percent-encode**：渲染时解码非 ASCII 路径（remark-rehype 编码还原）。
+
 ## [0.1.1.0] - 2026-09-05
 
 ### Added
