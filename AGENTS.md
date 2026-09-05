@@ -59,7 +59,7 @@ mdpkg/
 
 ```bash
 # 实现（packages/mdpkg/）
-cd packages/mdpkg && npm test                      # node --test test/*.test.ts（102 用例）
+cd packages/mdpkg && npm test                      # node --test test/*.test.ts（136 用例）
 npm run build:web                                  # 构建浏览器库（ESM + IIFE bundle）
 node src/cli.ts pack <dir> -o out.mdpkg            # 打包
 node src/cli.ts list out.mdpkg                     # 列条目（只读 header，不解压）
@@ -91,7 +91,8 @@ git status                 # 工作区状态（PLAN_MERGED.md / spec/ / packages
 - 已完成 M5：conformance fixtures **43 个用例**（`spec/fixtures/<id>/{case.json,input/}`，驱动 `packages/mdpkg/test/fixtures.test.ts`）。
 - 已完成 M6：规范与实现逐条对齐，补齐 5 处「规范承诺但实现缺失」（E701/E702 版本协商、`--referenced-only`、`export --raw/--expanded`、`mdpkg diff`），`--fetch` 显式标注为 v1 不提供。
 - **M0–M6 全部完成**（M7 为延后项）。
-- 已完成 zip-core 跨端核心层 + mdpkg-web 浏览器库（`openMdpkg` / `packMdpkg` / `readEntrySource`）+ repack 往返能力 + 限额与边界回归测试。**全量测试 102 用例：100 通过 + 2 跳过**。
+- 已完成 zip-core 跨端核心层 + mdpkg-web 浏览器库（`openMdpkg` / `packMdpkg` / `readEntrySource`）+ repack 往返能力 + 限额与边界回归测试。**全量测试 136 用例**。
+- 已完成 lenient-open（宽容打开普通 ZIP 文档）上线：`render` / `export` / `openMdpkg` 接受无 manifest 的 zip，推断入口 + 标注 `unverified` / `entry`；unpack/list 静默截断根治（分块 push 替代 fflate 递归限制，issue #1 关闭）。
 - 已知缺口：`--fetch` 未提供（规范已标注为参考实现 v1 不提供）；M7（VS Code 插件）在采用可行性验证前不启动。
 - 定位：先自用后标准化，3 个月止损判据；VS Code 插件（M7）在采用可行性验证前不启动。
 - 2026-08-31：MDE → mdpkg 统一改名完成（错误码 MDPKG-EXXX，manifest 标识字段 format:"mdpkg"），三仓库拆分：mdpkg（本仓库，格式+CLI）/ md-bundle（网页工具占位，新建）/ clairis（桌面旗舰）

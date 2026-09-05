@@ -68,7 +68,7 @@ Requires Node 22.18+ (runs `.ts` directly via built-in type stripping, no build 
 
 When no `manifest.json` is present, the entrypoint is inferred by this priority: `document.md` (at any depth, shallowest wins) > `README.md` > `README.zh-CN.md` > first remaining `.md` in lexicographic order. Hidden paths (starting with `.`) are excluded. If no `.md` file exists, opening fails with `MDPKG-E303`.
 
-Lenient-opened packages are flagged as **unverified source (missing manifest.json)**: the CLI prints a notice on stderr, and the browser API returns `unverified: true`. This is separate from `degraded` (the >50 MB resource fallback) — consumers adding lenient-open support should handle the new `unverified` field.
+Lenient-opened packages are flagged as **unverified source (missing manifest.json)**: the CLI prints a notice on stderr, and the browser API returns `unverified: true` along with `entry` (the actual entrypoint inferred). This is separate from `degraded` (the >50 MB resource fallback) — consumers adding lenient-open support should handle the new `unverified` and `entry` fields. The `demo.html` viewer shows an "unverified" badge for such packages.
 
 `validate` still rejects packages without a manifest (`MDPKG-E102`); lenient opening provides no integrity check (there is no declaration to verify). Re-packaging a lenient-opened archive with `pack` produces a conformant `.mdpkg`.
 
@@ -90,7 +90,7 @@ Full specification: [`spec/mdpkg-format-spec.md`](spec/mdpkg-format-spec.md) (Ch
 
 ```bash
 cd packages/mdpkg && node --test test/*.test.ts
-# 129 tests
+# 136 tests
 ```
 
 Fixtures are implementation-agnostic data (`case.json` + `input/`); any implementation passing the same set is considered conformant.
