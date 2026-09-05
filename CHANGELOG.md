@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.1.0] - 2026-09-05
+
+### Added
+
+- **lenient-open：打开普通 ZIP 文档**——`render` / `export` / 浏览器 `openMdpkg` 接受无 `manifest.json` 的 zip（`.zip` 与 `.mdpkg` 同等对待）。入口按确定性规则推断：`document.md`（任意深度取最浅）> `README.md` > `README.zh-CN.md` > 根目录字典序首个 `.md`。
+- **未校验来源标注**：宽容打开的包在 CLI stderr 提示、浏览器 API 返回 `unverified: true` 与 `entry`（实际采用入口）；`demo.html` 显示「未校验」徽标与推断入口提示。
+- **5 个 lenient-open conformance fixtures**（入口推断、E303/E102 边界）。
+
+### Fixed
+
+- **unpack/list 静默截断根治**（数据完整性）：超过约 2108 条目的包此前会被 fflate 递归解析限制静默丢弃内容（issue #1）——改为按 local header 边界分块 push 后，任意条目数完整解包；E602（1 万条）/E604（1GB）限额保护恢复可达。
+- **web 端标题与入口一致**：lenient 包不再显示错误的 `document.md` 标题，与推断入口对齐。
+- `export --raw` 对无 Markdown 的裸 zip 保持可用（不因入口推断报错）。
+
+### Changed
+
+- 测试套件 108 → **136**（分块边界、lenient、限额回归）；浏览器 bundle 重建（分块 + lenient 更新进入 mdpkg-web）。
+
+---
+
 ## [0.1.0.0] - 2026-09-05
 
 ### Added
