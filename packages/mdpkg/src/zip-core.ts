@@ -18,6 +18,9 @@ export const LIMITS = {
   ratio: 1000, // 压缩比
 };
 
+// fflate Unzip 单次 push 递归解析在 ~2108 条目处静默截断（issue #1），取 1000 留余量
+const ZIP_CHUNK_ENTRIES = 1000;
+
 const ILLEGAL = /(^|[\\/])\.\.([\\/]|$)|\\|\0|^[A-Za-z]:|^[/\\]/u;
 
 /** 路径规范化：NFC 归一化 + 拒绝非法路径。返回包内相对路径（分隔符 /） */
@@ -144,9 +147,7 @@ export function unpack(data: Uint8Array): Promise<Map<string, Uint8Array>> {
     });
     uz.register(UnzipInflate);
     uz.register(UnzipPassThrough);
-    // 分块 push：避免 fflate Unzip 递归解析在 ~2108 条目处静默截断（issue #1）
-    // 取 1000（远低于 2108 栈限，为回调/测试运行器等保留充足栈空间）
-    const chunks = chunkZIP(data, 1000);
+    const chunks = chunkZIP(data, ZIP_CHUNK_ENTRIES);
     for (let i = 0; i < chunks.length; i++) uz.push(chunks[i], i === chunks.length - 1);
     finish();
   });
@@ -177,9 +178,7 @@ export function list(data: Uint8Array): Promise<{ path: string; size: number; co
     });
     uz.register(UnzipInflate);
     uz.register(UnzipPassThrough);
-    // 分块 push：避免 fflate Unzip 递归解析在 ~2108 条目处静默截断（issue #1）
-    // 取 1000（远低于 2108 栈限，为回调/测试运行器等保留充足栈空间）
-    const chunks = chunkZIP(data, 1000);
+    const chunks = chunkZIP(data, ZIP_CHUNK_ENTRIES);
     for (let i = 0; i < chunks.length; i++) uz.push(chunks[i], i === chunks.length - 1);
     finish();
   });

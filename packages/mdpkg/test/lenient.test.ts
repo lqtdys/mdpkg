@@ -47,6 +47,15 @@ test('inferEntrypoint: README.zh-CN.md 变体', () => {
   assert.equal(inferEntrypoint(files), 'README.zh-CN.md');
 });
 
+test('inferEntrypoint: README.md 优先于 README.zh-CN.md（同树共存）', () => {
+  const files = new Map([
+    ['README.md', enc('# README')],
+    ['README.zh-CN.md', enc('# 中文')],
+  ]);
+  // 锁死默认名循环顺序：README.md 先于 README.zh-CN.md，防优先级反转不被察觉
+  assert.equal(inferEntrypoint(files), 'README.md');
+});
+
 test('inferEntrypoint: 子目录 document.md 优先于根 README（全树最浅）', () => {
   const files = new Map([
     ['README.md', enc('# README')],
@@ -140,6 +149,14 @@ test('openMdpkg 带 manifest 包返回 unverified: false', async () => {
   const bytes = pack(files, buildManifest(files));
   const r = await openMdpkg(bytes);
   assert.equal(r.unverified, false);
+});
+
+test('openMdpkg 裸 zip 无 md: 返回 error 分支且 unverified:true', async () => {
+  const bytes = bareZip({ 'image.png': new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]) });
+  const r = await openMdpkg(bytes);
+  assert.equal(r.unverified, true, '无 manifest 应标记 unverified');
+  assert.equal(r.html, null, '渲染失败应返回 html:null（error 分支）');
+  assert.ok(r.error?.includes('MDPKG-E303'), `error 应含 MDPKG-E303: ${r.error}`);
 });
 
 // --- 3.3 CLI stderr 提示 ---

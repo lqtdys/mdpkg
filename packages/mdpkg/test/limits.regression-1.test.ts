@@ -91,7 +91,7 @@ function forgeZip(entries: { name: string; data: Uint8Array; origSize?: number }
   return out;
 }
 
-// 2026-09-05 修复：unpack 改为分块 push（chunkZIP，每块 ≤2000 条目），fflate 递归深度不再超限。
+// 2026-09-05 修复：unpack 改为分块 push（chunkZIP，每块 ≤1000 条目），fflate 递归深度不再超限。
 // 10_001 条目全部被解析后，第 10_001 个触发 LIMITS.entries=10_000 → E602。
 test('E602: 条目总数超过 10_000 上限被拒绝', async () => {
   // 真实 10_001 个 1 字节条目（zipSync 直接生成，可靠）

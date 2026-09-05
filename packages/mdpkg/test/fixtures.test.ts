@@ -102,6 +102,8 @@ async function runCase(c: Case, base: string): Promise<void> {
     // lenient：直接对无 manifest 的文件集校验（严格性保持，应报 E102）；否则注入 manifest
     const pkg = c.lenient ? files : withManifest();
     if (c.tamper) {
+      // lenient+tamper 互斥：tamper 需要 manifest.json，缺失时下方 pkg.get()! 会 TypeError（潜伏）
+      if (!pkg.has('manifest.json')) throw new Error('fixture 错误: lenient+tamper 互斥（tamper 需要 manifest）');
       const idx = c.tamper.resource ?? 0;
       const m = JSON.parse(new TextDecoder().decode(pkg.get('manifest.json')!));
       if (c.tamper.sha256) m.resources[idx].sha256 = c.tamper.sha256;
