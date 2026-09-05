@@ -62,6 +62,16 @@ Requires Node 22.18+ (runs `.ts` directly via built-in type stripping, no build 
 | `export --expanded <pkg> -o dir` | Includes expanded, relative paths rewritten against the package root (openable by any MD tool)     |
 | `diff a.mdpkg b.mdpkg`           | Unpacks both and runs `diff -ruN`                                                                  |
 
+## Opening
+
+`render`, `export`, and the browser `openMdpkg` accept not only `.mdpkg` but also **plain ZIP archives** (a directory tree with Markdown, no `manifest.json`). The `.zip` extension is treated the same as `.mdpkg`.
+
+When no `manifest.json` is present, the entrypoint is inferred by this priority: `document.md` (at any depth, shallowest wins) > `README.md` > `README.zh-CN.md` > first remaining `.md` in lexicographic order. Hidden paths (starting with `.`) are excluded. If no `.md` file exists, opening fails with `MDPKG-E303`.
+
+Lenient-opened packages are flagged as **unverified source (missing manifest.json)**: the CLI prints a notice on stderr, and the browser API returns `unverified: true`. This is separate from `degraded` (the >50 MB resource fallback) — consumers adding lenient-open support should handle the new `unverified` field.
+
+`validate` still rejects packages without a manifest (`MDPKG-E102`); lenient opening provides no integrity check (there is no declaration to verify). Re-packaging a lenient-opened archive with `pack` produces a conformant `.mdpkg`.
+
 ## Browser library
 
 `packages/mdpkg/web/` ships `mdpkg-web` — an ESM/IIFE bundle for browsers. `openMdpkg` reads a package, `packMdpkg` repacks edits (byte-identical to CLI `pack`), `readEntrySource` reads a single entry. `demo.html` exercises the full flow. Build with `npm run build:web`.
@@ -80,7 +90,7 @@ Full specification: [`spec/mdpkg-format-spec.md`](spec/mdpkg-format-spec.md) (Ch
 
 ```bash
 cd packages/mdpkg && node --test test/*.test.ts
-# 102 tests: 100 pass + 2 skip
+# 129 tests
 ```
 
 Fixtures are implementation-agnostic data (`case.json` + `input/`); any implementation passing the same set is considered conformant.
